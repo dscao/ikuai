@@ -1,0 +1,13 @@
+{
+  "domain": "ikuai",
+  "name": "ikuai",
+  "config_flow": true,
+  "documentation": "https://github.com/dscao/ikuai",
+  "version": "1.0",
+  "requirements": [],
+  "dependencies": [],
+  "codeowners": [
+    "@dscao"
+  ],
+  "iot_class": "local_polling"
+}
