@@ -1,0 +1,32 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "设备已经配置"
+        },
+        "error": {
+            "cannot_connect": "连接失败",
+            "invalid_auth": "用户名或密码错误",
+            "unknown": "未知错误"
+        },
+        "step": {
+            "user": {
+                "title":"爱快路由器",
+                "data": {
+                    "password": "密码",
+                    "username": "用户名",
+					"host": "主机Web地址（如：http://192.168.1.1）"
+                }
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "user":{
+                "data": {                    
+					"update_interval_seconds": "刷新间隔时间(1-3600 秒)"
+                },
+                "description": "设备请求刷新时间"
+            }
+        }
+    }
+}
