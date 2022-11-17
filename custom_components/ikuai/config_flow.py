@@ -51,7 +51,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             "pass": pas
         }  
 
-        return requests.post( host + LOGIN_URL, json=json_body, headers=header, timeout=5)
+        return requests.post( host + LOGIN_URL, json=json_body, headers=header, verify=False, timeout=5)
 
     async def async_step_user(self, user_input={}):
         self._errors = {}
