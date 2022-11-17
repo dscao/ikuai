@@ -252,7 +252,7 @@ class DataFetcher:
         
     async def get_data(self, sess_key):  
         threads = [            
-            self._get_ikuai_status(sess_key
+            self._get_ikuai_status(sess_key)
         ]
         await asyncio.wait(threads)
         
