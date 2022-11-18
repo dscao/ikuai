@@ -23,7 +23,7 @@
         "step": {
             "user":{
                 "data": {                    
-					"update_interval_seconds": "刷新间隔时间(1-3600 秒)"
+					"update_interval_seconds": "刷新间隔时间(10-3600 秒)"
                 },
                 "description": "设备请求刷新时间"
             }

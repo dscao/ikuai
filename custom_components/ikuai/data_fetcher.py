@@ -85,7 +85,7 @@ class DataFetcher:
         url =  host + LOGIN_URL
         
         try:
-            async with timeout(2): 
+            async with timeout(10): 
                 resdata = await self._hass.async_add_executor_job(self.requestpost_cookies, url, header, json_body) 
                 _LOGGER.debug("login_successfully for IKUAI")
         except (
@@ -127,7 +127,7 @@ class DataFetcher:
         url =  self._host + ACTION_URL
         
         try:
-            async with timeout(5): 
+            async with timeout(10): 
                 resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
         except (
             ClientConnectorError
@@ -187,7 +187,7 @@ class DataFetcher:
         url =  self._host + ACTION_URL
         
         try:
-            async with timeout(5): 
+            async with timeout(10): 
                 resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
         except (
             ClientConnectorError
@@ -231,7 +231,7 @@ class DataFetcher:
         url =  self._host + ACTION_URL
         
         try:
-            async with timeout(5): 
+            async with timeout(10): 
                 resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
         except (
             ClientConnectorError

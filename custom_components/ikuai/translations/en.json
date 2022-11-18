@@ -23,7 +23,7 @@
         "step": {
             "user":{
                 "data": {                    
-					"update_interval_seconds": "Update_interval(1-3600 seconds)"
+					"update_interval_seconds": "Update_interval(10-3600 seconds)"
                 },
                 "description": "Set Entity Update_interval"
             }

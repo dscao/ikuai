@@ -118,7 +118,7 @@ class IKUAIDataUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.debug(sess_key) 
         
         try:
-            async with timeout(5):
+            async with timeout(10):
                 data = await self._fetcher.get_data(sess_key)
                 if data == 401:
                     self._token_expire_time = 0
