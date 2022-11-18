@@ -205,10 +205,13 @@ class DataFetcher:
         if resdata["Data"].get("snapshoot_wan"):
             self._data["ikuai_wan_ip"] = resdata["Data"]["snapshoot_wan"][0]["ip_addr"]
             self._data["ikuai_wan_ip_attrs"] = resdata["Data"]["snapshoot_wan"][0]
-            self._data["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - resdata["Data"]["snapshoot_wan"][0]["updatetime"])) 
+            if resdata["Data"]["snapshoot_wan"][0]["updatetime"] == 0:
+                self._data["ikuai_wan_uptime"] = ""
+            else:
+                self._data["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - resdata["Data"]["snapshoot_wan"][0]["updatetime"])) 
         else:
             self._data["ikuai_wan_ip"] = ""
-            self._data["ikuai_wan_uptime"] = ""        
+            self._data["ikuai_wan_uptime"] = ""
         
         return
         
