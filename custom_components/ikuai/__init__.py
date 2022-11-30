@@ -26,7 +26,7 @@ import asyncio
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BUTTON, Platform.SWITCH]
 
 
 async def async_setup(hass: HomeAssistant, config: Config) -> bool:
@@ -96,6 +96,7 @@ class IKUAIDataUpdateCoordinator(DataUpdateCoordinator):
         _LOGGER.debug("%s Data will be update every %s", host, update_interval)
         self._token = ""
         self._token_expire_time = 0
+        self._allow_login = True
     
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=update_interval)
 
@@ -106,25 +107,31 @@ class IKUAIDataUpdateCoordinator(DataUpdateCoordinator):
         if time.time() < self._token_expire_time:
             return self._token
         else:
-            self._token = await self._fetcher._login_ikuai()
-            self._token_expire_time = time.time() + 60*60*2          
-            return self._token
+            if self._allow_login == True:
+                self._token = await self._fetcher._login_ikuai()
+                if self._token == 10001:
+                    self._allow_login = False
+                self._token_expire_time = time.time() + 60*60*2          
+                return self._token
+            else:
+                return
 
     async def _async_update_data(self):
         """Update data via DataFetcher."""
         _LOGGER.debug("token_expire_time=%s", self._token_expire_time)
-
-        sess_key = await self.get_access_token()
-        _LOGGER.debug(sess_key) 
+        if self._allow_login == True:
         
-        try:
-            async with timeout(10):
-                data = await self._fetcher.get_data(sess_key)
-                if data == 401:
-                    self._token_expire_time = 0
-                    return
-                if not data:
-                    raise UpdateFailed("failed in getting data")
-                return data
-        except Exception as error:
-            raise UpdateFailed(error) from error
+            sess_key = await self.get_access_token()
+            _LOGGER.debug(sess_key) 
+
+            try:
+                async with timeout(10):
+                    data = await self._fetcher.get_data(sess_key)
+                    if data == 401:
+                        self._token_expire_time = 0
+                        return
+                    if not data:
+                        raise UpdateFailed("failed in getting data")
+                    return data
+            except Exception as error:
+                raise UpdateFailed(error) from error

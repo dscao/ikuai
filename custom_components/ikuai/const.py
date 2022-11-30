@@ -80,7 +80,7 @@ SENSOR_TYPES = {
         "unit_of_measurement": "MB/s",
     },
     "ikuai_wan_ip": {
-        "icon": "mdi:wan",
+        "icon": "mdi:ip-network-outline",
         "label": "WAN IP",
         "name": "ikuai_wan_ip",
     },
@@ -90,8 +90,24 @@ SENSOR_TYPES = {
         "name": "ikuai_wan_uptime",
     },
     "ikuai_wan6_ip": {
-        "icon": "mdi:wan",
+        "icon": "mdi:ip-network",
         "label": "WAN IP6",
         "name": "ikuai_wan6_ip",
+    },
+}
+
+
+BUTTON_TYPES = {
+    "ikuai_restart": {
+        "label": "Ikuai重启",
+        "name": "ikuai_restart",
+        "device_class": "restart",
+        "action_body": {"func_name":"wan","action":"link_dhcp_reconnect","param":{"id":1}}
+    },
+    "ikuai_restart_reconnect_wan": {
+        "label": "ikuai重连wan网络",
+        "name": "ikuai_reconnect_wan",
+        "device_class": "restart",
+        "action_body": {"func_name":"wan","action":"link_dhcp_reconnect","param":{"id":1}}
     },
 }

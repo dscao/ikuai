@@ -87,7 +87,12 @@ class DataFetcher:
         try:
             async with timeout(10): 
                 resdata = await self._hass.async_add_executor_job(self.requestpost_cookies, url, header, json_body) 
-                _LOGGER.debug("login_successfully for IKUAI")
+                _LOGGER.debug(resdata)
+                if isinstance(resdata, list):
+                    _LOGGER.debug("iKuai Username or Password is wrong，please reconfig!")   
+                    return resdata.get("Result")
+                else:
+                    _LOGGER.debug("login_successfully for IKUAI")                
         except (
             ClientConnectorError
         ) as error:
@@ -133,7 +138,7 @@ class DataFetcher:
             ClientConnectorError
         ) as error:
             raise UpdateFailed(error)
-        _LOGGER.debug("Requests remaining: %s", url)
+        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
         _LOGGER.debug(resdata)
         if resdata == 401:
             self._data = 401
@@ -142,7 +147,7 @@ class DataFetcher:
             self._data = 401
             return
             
-        self._data = {}            
+        self._data = {}
 
         self._data["sw_version"] = resdata["Data"]["sysstat"]["verinfo"]["verstring"]
         self._data["device_name"] = resdata["Data"]["sysstat"]["hostname"]
@@ -193,7 +198,7 @@ class DataFetcher:
             ClientConnectorError
         ) as error:
             raise UpdateFailed(error)
-        _LOGGER.debug("Requests remaining: %s", url)
+        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
         _LOGGER.debug(resdata)
         if resdata == 401:
             self._data = 401
@@ -237,7 +242,7 @@ class DataFetcher:
             ClientConnectorError
         ) as error:
             raise UpdateFailed(error)
-        _LOGGER.debug("Requests remaining: %s", url)
+        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
         _LOGGER.debug(resdata)
         if resdata == 401:
             self._data = 401
@@ -252,6 +257,42 @@ class DataFetcher:
             self._data["ikuai_wan6_ip"] = ""       
         return
         
+    async def _get_ikuai_mac_control(self, sess_key):
+        header = {
+            'Cookie': 'Cookie: username=admin; login=1; sess_key='+sess_key,
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Content-Type': 'application/json;charset=UTF-8',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.40 Safari/537.36',
+        }
+        
+        json_body = {"func_name":"acl_mac","action":"show","param":{"TYPE":"total,data","limit":"0,100","ORDER_BY":"","ORDER":""}}
+        
+
+        url =  self._host + ACTION_URL
+        
+        try:
+            async with timeout(10): 
+                resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
+        except (
+            ClientConnectorError
+        ) as error:
+            raise UpdateFailed(error)
+        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
+        _LOGGER.debug(resdata)
+        if resdata == 401:
+            self._data = 401
+            return
+        if resdata["Result"] == 10014:
+            self._data = 401
+            return            
+        if resdata["Data"].get("data"):
+            self._data["mac_control"] = resdata["Data"].get("data")
+        else:
+            self._data["mac_control"] = ""
+        return
+        
         
     async def get_data(self, sess_key):  
         threads = [            
@@ -262,6 +303,7 @@ class DataFetcher:
         threads = [            
             self._get_ikuai_waninfo(sess_key),
             self._get_ikuai_wan6info(sess_key),
+            self._get_ikuai_mac_control(sess_key),
         ]
         await asyncio.wait(threads)
         _LOGGER.debug(self._data)
