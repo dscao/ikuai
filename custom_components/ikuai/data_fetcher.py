@@ -17,6 +17,7 @@ from requests.adapters import HTTPAdapter
 from .const import (
     LOGIN_URL,
     ACTION_URL,
+    DEVICE_TRACKERS, 
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -294,6 +295,42 @@ class DataFetcher:
         return
         
         
+    async def _get_ikuai_device_tracker(self, sess_key, macaddress):
+        header = {
+            'Cookie': 'Cookie: username=admin; login=1; sess_key='+sess_key,
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Content-Type': 'application/json;charset=UTF-8',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.40 Safari/537.36',
+        }
+        
+        json_body = {"func_name":"monitor_lanip","action":"show","param":{"TYPE":"data,total","ORDER_BY":"ip_addr_int","orderType":"IP","limit":"0,20","ORDER":"","FINDS":"ip_addr,mac,comment,username","KEYWORDS":macaddress}}
+        
+
+        url =  self._host + ACTION_URL
+        
+        try:
+            async with timeout(10): 
+                resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
+        except (
+            ClientConnectorError
+        ) as error:
+            raise UpdateFailed(error)
+        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
+        _LOGGER.debug(resdata)
+        if resdata == 401:
+            self._data = 401
+            return
+        if resdata["Result"] == 10014:
+            self._data = 401
+            return            
+        if resdata["Data"].get("data"):
+            _LOGGER.debug(resdata["Data"].get("data"))
+            self._data["tracker"].append(resdata["Data"].get("data")[0])
+        return
+    
+        
     async def get_data(self, sess_key):  
         threads = [            
             self._get_ikuai_status(sess_key)
@@ -306,6 +343,13 @@ class DataFetcher:
             self._get_ikuai_mac_control(sess_key),
         ]
         await asyncio.wait(threads)
+        
+        self._data["tracker"] = []
+        threads = []
+        for device_tracker in DEVICE_TRACKERS:
+            threads.append(self._get_ikuai_device_tracker(sess_key, DEVICE_TRACKERS[device_tracker]["mac_address"]))
+        await asyncio.wait(threads)
+        
         _LOGGER.debug(self._data)
         return self._data
 

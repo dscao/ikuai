@@ -111,3 +111,20 @@ BUTTON_TYPES = {
         "action_body": {"func_name":"wan","action":"link_dhcp_reconnect","param":{"id":1}}
     },
 }
+
+DEVICE_TRACKERS = {
+    "myiphone1": {
+        "label": "我的手机",
+        "name": "iphone13_1",
+        "icon": "mdi:cellphone",
+        "mac_address": "ab:ab:ab:ab:ab:aa"
+    },
+    "myiphone2": {
+        "label": "我的手机2",
+        "name": "iphone13_2",
+        "icon": "mdi:cellphone",
+        "mac_address": "ab:ab:ab:ab:ab:ab"
+    },
+    
+    
+}
