@@ -102,7 +102,7 @@ BUTTON_TYPES = {
         "label": "Ikuai重启",
         "name": "ikuai_restart",
         "device_class": "restart",
-        "action_body": {"func_name":"wan","action":"link_dhcp_reconnect","param":{"id":1}}
+        "action_body": {"func_name":"reboots","action":"reboots"}
     },
     "ikuai_restart_reconnect_wan": {
         "label": "ikuai重连wan网络",
