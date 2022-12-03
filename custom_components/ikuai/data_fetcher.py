@@ -55,6 +55,7 @@ class DataFetcher:
         
     def requestpost_json(self, url, headerstr, json_body):
         responsedata = requests.post(url, headers=headerstr, json = json_body, verify=False)
+        _LOGGER.debug(responsedata)
         if responsedata.status_code != 200:
             return responsedata.status_code
         json_text = responsedata.content.decode('utf-8')

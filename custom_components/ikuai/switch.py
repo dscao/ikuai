@@ -37,12 +37,12 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     #_LOGGER.debug(coordinator.data.get("mac_control"))
     if coordinator.data.get("mac_control"):
         listmacdata = coordinator.data.get("mac_control")
-    if isinstance(listmacdata, list):
-        _LOGGER.debug(listmacdata)
-        for mac in listmacdata:
-            #_LOGGER.debug(mac)
-            switchs.append(PVESwitch(hass, coordinator, host, username, passwd, pas, mac["id"]))
-    async_add_entities(switchs, False)
+        if isinstance(listmacdata, list):
+            _LOGGER.debug(listmacdata)
+            for mac in listmacdata:
+                #_LOGGER.debug(mac)
+                switchs.append(PVESwitch(hass, coordinator, host, username, passwd, pas, mac["id"]))
+        async_add_entities(switchs, False)
 
 class PVESwitch(SwitchEntity):
     def __init__(self, hass, coordinator, host, username, passwd, pas, mac):
@@ -75,7 +75,10 @@ class PVESwitch(SwitchEntity):
             for macswitch in listmacswitch:
                 if macswitch["id"] == mac:
                     _LOGGER.debug(macswitch)
-                    self._name = "ikuai_mac_control_" + str(mac)+"("+macswitch["comment"]+")"
+                    if macswitch.get("comment"):
+                        self._name = "ikuai_mac_control_" + str(mac)+"("+macswitch["comment"]+")"
+                    else:
+                        self._name = "ikuai_mac_control_" + str(mac)+"(未备注)"
                     self._mac_address = macswitch["mac"]
                     self._is_on = macswitch["enabled"] == "yes"
                     self._state = "on" if self._is_on == True else "off"
