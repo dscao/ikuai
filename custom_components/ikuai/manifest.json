@@ -3,7 +3,7 @@
   "name": "ikuai",
   "config_flow": true,
   "documentation": "https://github.com/dscao/ikuai",
-  "version": "1.1",
+  "version": "1.2",
   "requirements": [],
   "dependencies": [],
   "codeowners": [
