@@ -209,12 +209,60 @@ class DataFetcher:
             return            
 
         if resdata["Data"].get("snapshoot_wan"):
-            self._data["ikuai_wan_ip"] = resdata["Data"]["snapshoot_wan"][0]["ip_addr"]
-            self._data["ikuai_wan_ip_attrs"] = resdata["Data"]["snapshoot_wan"][0]
-            if resdata["Data"]["snapshoot_wan"][0]["updatetime"] == 0:
-                self._data["ikuai_wan_uptime"] = ""
+            self._data["ikuai_internet"] = resdata["Data"]["snapshoot_wan"][0]["internet"]
+            self._data["ikuai_count_pppoe"] = resdata["Data"]["snapshoot_wan"][0]["count_pppoe"]
+            if self._data["ikuai_internet"] == 0 or self._data["ikuai_internet"] ==1 or self._data["ikuai_internet"] == 2:
+                self._data["ikuai_wan_ip"] = resdata["Data"]["snapshoot_wan"][0]["ip_addr"]
+                self._data["ikuai_wan_ip_attrs"] = resdata["Data"]["snapshoot_wan"][0]
+                if resdata["Data"]["snapshoot_wan"][0]["updatetime"] == 0:
+                    self._data["ikuai_wan_uptime"] = ""
+                else:
+                    self._data["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - resdata["Data"]["snapshoot_wan"][0]["updatetime"])) 
             else:
-                self._data["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - resdata["Data"]["snapshoot_wan"][0]["updatetime"])) 
+                self._data["ikuai_wan_ip"] = ""
+                self._data["ikuai_wan_uptime"] = ""
+        
+        return
+        
+    async def _get_ikuai_showvlan(self, sess_key, vlan_internet):
+        header = {
+            'Cookie': 'Cookie: username=admin; login=1; sess_key='+sess_key,
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Content-Type': 'application/json;charset=UTF-8',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.40 Safari/537.36',
+        }
+        
+        json_body = {"func_name":"wan","action":"show","param":{"TYPE":"vlan_data,vlan_total","ORDER_BY":"vlan_name","ORDER":"asc","vlan_internet":2,"interface":"wan1","limit":"0,20"}}
+        
+
+        url =  self._host + ACTION_URL
+        
+        try:
+            async with timeout(10): 
+                resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
+        except (
+            ClientConnectorError
+        ) as error:
+            raise UpdateFailed(error)
+        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
+        _LOGGER.debug(resdata)
+        if resdata == 401:
+            self._data = 401
+            return
+        if resdata["Result"] == 10014:
+            self._data = 401
+            return            
+
+        if resdata["Data"].get("vlan_data"):
+            vlan_datas = resdata["Data"]["vlan_data"]
+            for vlan_data in vlan_datas:
+                if vlan_data["pppoe_updatetime"] != 0:
+                    self._data["ikuai_wan_ip"] = vlan_data["pppoe_ip_addr"]
+                    self._data["ikuai_wan_ip_attrs"] = vlan_data
+                    self._data["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - vlan_data["pppoe_updatetime"])) 
+                    return
         else:
             self._data["ikuai_wan_ip"] = ""
             self._data["ikuai_wan_uptime"] = ""
@@ -349,6 +397,11 @@ class DataFetcher:
         for device_tracker in DEVICE_TRACKERS:
             threads.append(self._get_ikuai_device_tracker(sess_key, DEVICE_TRACKERS[device_tracker]["mac_address"]))
         await asyncio.wait(threads)
+        if (self._data["ikuai_internet"] == 3 or self._data["ikuai_internet"] ==4) and int(self._data["ikuai_count_pppoe"])>0:
+            threads = [            
+            self._get_ikuai_showvlan(sess_key, self._data["ikuai_internet"])
+            ]
+            await asyncio.wait(threads)
         
         _LOGGER.debug(self._data)
         return self._data
