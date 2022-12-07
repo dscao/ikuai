@@ -36,6 +36,8 @@ class DataFetcher:
         self._hass = hass
         self._session_client = async_create_clientsession(hass)
         self._data = {}
+        self._datatracker = {}
+        self._datarefreshtimes = {}
     
     def requestget_data(self, url, headerstr):
         responsedata = requests.get(url, headers=headerstr)
@@ -377,6 +379,14 @@ class DataFetcher:
         if resdata["Data"].get("data"):
             _LOGGER.debug(resdata["Data"].get("data"))
             self._data["tracker"].append(resdata["Data"].get("data")[0])
+            self._datatracker[macaddress] = resdata["Data"].get("data")[0]
+            self._datarefreshtimes[macaddress] = 0
+            _LOGGER.debug(self._datarefreshtimes[macaddress])
+        elif self._datarefreshtimes.get(macaddress):            
+            if self._datarefreshtimes[macaddress] < 3 :
+                self._data["tracker"].append(self._datatracker[macaddress])
+                self._datarefreshtimes[macaddress] = self._datarefreshtimes[macaddress] + 1
+
         return
     
         
@@ -395,9 +405,10 @@ class DataFetcher:
         
         self._data["tracker"] = []
         threads = []
-        for device_tracker in DEVICE_TRACKERS:
+        for device_tracker in DEVICE_TRACKERS:            
             threads.append(self._get_ikuai_device_tracker(sess_key, DEVICE_TRACKERS[device_tracker]["mac_address"]))
         await asyncio.wait(threads)
+       
         if (self._data["ikuai_internet"] == 3 or self._data["ikuai_internet"] ==4) and int(self._data["ikuai_count_pppoe"])>0:
             threads = [            
             self._get_ikuai_showvlan(sess_key, self._data["ikuai_internet"])
