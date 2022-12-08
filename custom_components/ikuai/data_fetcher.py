@@ -39,12 +39,22 @@ class DataFetcher:
         self._datatracker = {}
         self._datarefreshtimes = {}
     
+    def is_json(self, jsonstr):
+        try:
+            json.loads(jsonstr)
+        except ValueError:
+            return False
+        return True
+    
     def requestget_data(self, url, headerstr):
         responsedata = requests.get(url, headers=headerstr)
         if responsedata.status_code != 200:
             return responsedata.status_code
         json_text = responsedata.content.decode('utf-8')
-        resdata = json.loads(json_text)
+        if self.is_json(json_text):
+            resdata = json.loads(json_text)
+        else:
+            resdata = json_text
         return resdata
         
     def requestpost_data(self, url, headerstr, datastr):
@@ -52,7 +62,10 @@ class DataFetcher:
         if responsedata.status_code != 200:
             return responsedata.status_code
         json_text = responsedata.content.decode('utf-8')
-        resdata = json.loads(json_text)
+        if self.is_json(json_text):
+            resdata = json.loads(json_text)
+        else:
+            resdata = json_text
         return resdata
         
     def requestpost_json(self, url, headerstr, json_body):
@@ -61,7 +74,10 @@ class DataFetcher:
         if responsedata.status_code != 200:
             return responsedata.status_code
         json_text = responsedata.content.decode('utf-8')
-        resdata = json.loads(json_text)
+        if self.is_json(json_text):
+            resdata = json.loads(json_text)
+        else:
+            resdata = json_text
         return resdata
 
     def requestpost_cookies(self, url, headerstr, json_body):
@@ -88,6 +104,7 @@ class DataFetcher:
         }  
         url =  host + LOGIN_URL
         
+        _LOGGER.debug("Requests remaining: %s", url)   
         try:
             async with timeout(10): 
                 resdata = await self._hass.async_add_executor_job(self.requestpost_cookies, url, header, json_body) 
@@ -100,8 +117,7 @@ class DataFetcher:
         except (
             ClientConnectorError
         ) as error:
-            raise UpdateFailed(error)
-        _LOGGER.debug("Requests remaining: %s", url)          
+            raise UpdateFailed(error)              
        
         return resdata
         
@@ -134,15 +150,14 @@ class DataFetcher:
         
 
         url =  self._host + ACTION_URL
-        
+        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
         try:
             async with timeout(10): 
                 resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
         except (
             ClientConnectorError
         ) as error:
-            raise UpdateFailed(error)
-        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
+            raise UpdateFailed(error)        
         _LOGGER.debug(resdata)
         if resdata == 401:
             self._data = 401
@@ -194,15 +209,14 @@ class DataFetcher:
         
 
         url =  self._host + ACTION_URL
-        
+        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
         try:
             async with timeout(10): 
                 resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
         except (
             ClientConnectorError
         ) as error:
-            raise UpdateFailed(error)
-        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
+            raise UpdateFailed(error)        
         _LOGGER.debug(resdata)
         if resdata == 401:
             self._data = 401
@@ -241,15 +255,14 @@ class DataFetcher:
         
 
         url =  self._host + ACTION_URL
-        
+        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
         try:
             async with timeout(10): 
                 resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
         except (
             ClientConnectorError
         ) as error:
-            raise UpdateFailed(error)
-        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
+            raise UpdateFailed(error)        
         _LOGGER.debug(resdata)
         if resdata == 401:
             self._data = 401
@@ -286,15 +299,14 @@ class DataFetcher:
         
 
         url =  self._host + ACTION_URL
-        
+        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
         try:
             async with timeout(10): 
                 resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
         except (
             ClientConnectorError
         ) as error:
-            raise UpdateFailed(error)
-        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
+            raise UpdateFailed(error)        
         _LOGGER.debug(resdata)
         if resdata == 401:
             self._data = 401
@@ -323,15 +335,14 @@ class DataFetcher:
         
 
         url =  self._host + ACTION_URL
-        
+        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
         try:
             async with timeout(10): 
                 resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
         except (
             ClientConnectorError
         ) as error:
-            raise UpdateFailed(error)
-        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
+            raise UpdateFailed(error)        
         _LOGGER.debug(resdata)
         if resdata == 401:
             self._data = 401
@@ -357,10 +368,9 @@ class DataFetcher:
         }
         
         json_body = {"func_name":"monitor_lanip","action":"show","param":{"TYPE":"data,total","ORDER_BY":"ip_addr_int","orderType":"IP","limit":"0,20","ORDER":"","FINDS":"ip_addr,mac,comment,username","KEYWORDS":macaddress}}
-        
 
         url =  self._host + ACTION_URL
-        
+        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
         try:
             async with timeout(10): 
                 resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
@@ -368,7 +378,6 @@ class DataFetcher:
             ClientConnectorError
         ) as error:
             raise UpdateFailed(error)
-        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
         _LOGGER.debug(resdata)
         if resdata == 401:
             self._data = 401
@@ -376,17 +385,21 @@ class DataFetcher:
         if resdata["Result"] == 10014:
             self._data = 401
             return            
-        if resdata["Data"].get("data"):
-            _LOGGER.debug(resdata["Data"].get("data"))
-            self._data["tracker"].append(resdata["Data"].get("data")[0])
-            self._datatracker[macaddress] = resdata["Data"].get("data")[0]
-            self._datarefreshtimes[macaddress] = 0
-            _LOGGER.debug(self._datarefreshtimes[macaddress])
+        if resdata["Data"].get("data") and resdata["Data"].get("total"):
+            if int(resdata["Data"]["total"]) > 0:            
+                _LOGGER.debug(resdata["Data"].get("data"))
+                if resdata["Data"].get("data")[0]:
+                    self._data["tracker"].append(resdata["Data"].get("data")[0])
+                    self._datatracker[macaddress] = resdata["Data"].get("data")[0]
+                else:
+                    self._data["tracker"].append(self._datatracker[macaddress])
+                self._datarefreshtimes[macaddress] = 0
+                _LOGGER.debug("%s refreshtimes: %s", macaddress, self._datarefreshtimes[macaddress])
         elif self._datarefreshtimes.get(macaddress):            
-            if self._datarefreshtimes[macaddress] < 3 :
+            if self._datarefreshtimes[macaddress] < 2 :
                 self._data["tracker"].append(self._datatracker[macaddress])
                 self._datarefreshtimes[macaddress] = self._datarefreshtimes[macaddress] + 1
-
+        
         return
     
         
@@ -401,18 +414,20 @@ class DataFetcher:
             self._get_ikuai_wan6info(sess_key),
             self._get_ikuai_mac_control(sess_key),
         ]
-        await asyncio.wait(threads)
-        
-        self._data["tracker"] = []
-        threads = []
-        for device_tracker in DEVICE_TRACKERS:            
-            threads.append(self._get_ikuai_device_tracker(sess_key, DEVICE_TRACKERS[device_tracker]["mac_address"]))
-        await asyncio.wait(threads)
+        await asyncio.wait(threads)        
        
         if (self._data["ikuai_internet"] == 3 or self._data["ikuai_internet"] ==4) and int(self._data["ikuai_count_pppoe"])>0:
             threads = [            
             self._get_ikuai_showvlan(sess_key, self._data["ikuai_internet"])
             ]
+            await asyncio.wait(threads)
+            
+        self._data["tracker"] = []
+        threads = []
+        for device_tracker in DEVICE_TRACKERS:
+            threads = [            
+                self._get_ikuai_device_tracker(sess_key, DEVICE_TRACKERS[device_tracker]["mac_address"])
+                ]
             await asyncio.wait(threads)
         
         _LOGGER.debug(self._data)
