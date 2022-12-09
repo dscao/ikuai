@@ -183,6 +183,7 @@ class DataFetcher:
         self._data["ikuai_memory_attrs"] = resdata["Data"]["sysstat"]["memory"]
         self._data["ikuai_online_user"] = resdata["Data"]["sysstat"]["online_user"]["count"]
         self._data["ikuai_online_user_attrs"] = resdata["Data"]["sysstat"]["online_user"]
+        self._data["ikuai_connect_num"] = int(resdata["Data"]["sysstat"]["stream"]["connect_num"])
         self._data["ikuai_upload"] = round(resdata["Data"]["sysstat"]["stream"]["upload"]/1024/1024, 3)
         self._data["ikuai_download"] = round(resdata["Data"]["sysstat"]["stream"]["download"]/1024/1024, 3)
         self._data["ikuai_total_up"] = round(resdata["Data"]["sysstat"]["stream"]["total_up"]/1024/1024/1024, 2)

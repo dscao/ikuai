@@ -79,6 +79,11 @@ SENSOR_TYPES = {
         "name": "ikuai_download",
         "unit_of_measurement": "MB/s",
     },
+    "ikuai_connect_num": {
+        "icon": "mdi:wifi-arrow-down",
+        "label": "连接数",
+        "name": "ikuai_connect_num",
+    },
     "ikuai_wan_ip": {
         "icon": "mdi:ip-network-outline",
         "label": "WAN IP",
@@ -117,13 +122,13 @@ DEVICE_TRACKERS = {
         "label": "我的手机",
         "name": "iphone13_1",
         "icon": "mdi:cellphone",
-        "mac_address": "ab:ab:ab:ab:ab:aa"
+        "mac_address": "64:6d:2f:88:4c:e8"
     },
     "myiphone2": {
         "label": "我的手机2",
         "name": "iphone13_2",
         "icon": "mdi:cellphone",
-        "mac_address": "ab:ab:ab:ab:ab:ab"
+        "mac_address": "a8:fe:9d:38:82:4d"
     },
     
     
