@@ -1,6 +1,6 @@
-### ha custom_component ikuai
+### ha custom_component iKuai
 
-ikuai router Obtains data generating entities through the Web.
+iKuai router Obtains data generating entities through the Web.
 
 1. Sensor entities such as network information
 2. Restart ikuai and reconnect to the network function
