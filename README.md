@@ -1,3 +1,7 @@
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![ha-inkwavemap version](https://img.shields.io/badge/ikuai-1.1-blue.svg)](https://github.com/dscao/ikuai)
+![visit](https://visitor-badge.glitch.me/badge?page_id=dscao.ikuai&left_text=visit)
+
 ### ha custom_component iKuai
 
 iKuai router Obtains data generating entities through the Web.
