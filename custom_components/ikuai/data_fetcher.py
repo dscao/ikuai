@@ -17,7 +17,8 @@ from requests.adapters import HTTPAdapter
 from .const import (
     LOGIN_URL,
     ACTION_URL,
-    DEVICE_TRACKERS, 
+    DEVICE_TRACKERS,
+    SWITCH_TYPES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -397,12 +398,47 @@ class DataFetcher:
                 self._datarefreshtimes[macaddress] = 0
                 _LOGGER.debug("%s refreshtimes: %s", macaddress, self._datarefreshtimes[macaddress])
         elif self._datarefreshtimes.get(macaddress):            
-            if self._datarefreshtimes[macaddress] < 2 :
+            if self._datarefreshtimes[macaddress] < 5 :
                 self._data["tracker"].append(self._datatracker[macaddress])
                 self._datarefreshtimes[macaddress] = self._datarefreshtimes[macaddress] + 1
         
         return
     
+    
+    async def _get_ikuai_switch(self, sess_key, name, show_body, show_on, show_off):
+        header = {
+            'Cookie': 'Cookie: username=admin; login=1; sess_key='+sess_key,
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Encoding': 'gzip, deflate',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Content-Type': 'application/json;charset=UTF-8',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.40 Safari/537.36',
+        }
+        
+        json_body = show_body
+
+        url =  self._host + ACTION_URL
+        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
+        try:
+            async with timeout(10): 
+                resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
+        except (
+            ClientConnectorError
+        ) as error:
+            raise UpdateFailed(error)
+        _LOGGER.debug(resdata)
+        if resdata == 401:
+            self._data = 401
+            return
+        if resdata["Result"] == 10014:
+            self._data = 401
+            return  
+        if resdata.get("Data") == show_on:
+            self._data["switch"].append({"name":name,"onoff":"on"})
+        elif resdata.get("Data") == show_off:
+            self._data["switch"].append({"name":name,"onoff":"off"})
+        return        
+            
         
     async def get_data(self, sess_key):  
         threads = [            
@@ -421,6 +457,14 @@ class DataFetcher:
             threads = [            
             self._get_ikuai_showvlan(sess_key, self._data["ikuai_internet"])
             ]
+            await asyncio.wait(threads)
+            
+        self._data["switch"] = []
+        threads = []
+        for switch in SWITCH_TYPES:
+            threads = [            
+                self._get_ikuai_switch(sess_key, SWITCH_TYPES[switch]['name'], SWITCH_TYPES[switch]['show_body'], SWITCH_TYPES[switch]['show_on'], SWITCH_TYPES[switch]['show_off'])
+                ]
             await asyncio.wait(threads)
             
         self._data["tracker"] = []

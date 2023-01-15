@@ -60,19 +60,6 @@ class IKUAITracker(ScannerEntity):
         self._attrs = {}
         self._querytime = ""
         
-        
-    async def get_access_token(self):
-        if time.time() < self._token_expire_time:
-            return self._token
-        else:
-            if self._allow_login == True:
-                self._token = await self._fetcher._login_ikuai()
-                if self._token == 10001:
-                    self._allow_login = False
-                self._token_expire_time = time.time() + 60*60*2          
-                return self._token
-            else:
-                return
 
     @property
     def name(self):

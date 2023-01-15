@@ -117,6 +117,20 @@ BUTTON_TYPES = {
     },
 }
 
+
+SWITCH_TYPES = {
+    "ikuai_arp_filter": {
+        "icon": "mdi:account-lock",
+        "label": "iKuai非绑定MAC不允许上网",
+        "name": "Arp_filter",
+        "turn_on_body": {"func_name":"arp","action":"seting","param":{"arp_filter":1}},
+        "turn_off_body": {"func_name":"arp","action":"seting","param":{"arp_filter":0}},
+        "show_body": {"func_name":"arp","action":"show","param":{"TYPE":"options"}},
+        "show_on": {'arp_filter': 1},
+        "show_off": {'arp_filter': 0},
+    },
+}
+
 DEVICE_TRACKERS = {
     "myiphone": {
         "label": "我的手机",
