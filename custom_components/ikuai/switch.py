@@ -45,6 +45,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         async_add_entities(switchs, False)
 
 class PVESwitch(SwitchEntity):
+    _attr_has_entity_name = True
     def __init__(self, hass, coordinator, host, username, passwd, pas, mac):
         """Initialize."""
         super().__init__()
@@ -76,9 +77,9 @@ class PVESwitch(SwitchEntity):
                 if macswitch["id"] == mac:
                     _LOGGER.debug(macswitch)
                     if macswitch.get("comment"):
-                        self._name = "ikuai_mac_control_" + str(mac)+"("+macswitch["comment"]+")"
+                        self._name = "Mac_control_" + str(mac)+"("+macswitch["comment"]+")"
                     else:
-                        self._name = "ikuai_mac_control_" + str(mac)+"(未备注)"
+                        self._name = "Mac_control_" + str(mac)+"(未备注)"
                     self._mac_address = macswitch["mac"]
                     self._is_on = macswitch["enabled"] == "yes"
                     self._state = "on" if self._is_on == True else "off"
@@ -100,7 +101,7 @@ class PVESwitch(SwitchEntity):
     @property
     def name(self):
         """Return the name."""
-        return self._name
+        return f"{self._name}"
 
     @property
     def unique_id(self):

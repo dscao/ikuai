@@ -24,80 +24,80 @@ SENSOR_TYPES = {
     "ikuai_uptime": {
         "icon": "mdi:clock-time-eight",
         "label": "iKuai启动时长",
-        "name": "ikuai_uptime",
+        "name": "Uptime",
     },
      "ikuai_cpu": {
         "icon": "mdi:cpu-64-bit",
         "label": "CPU占用",
-        "name": "ikuai_cpu",
+        "name": "CPU",
         "unit_of_measurement": "%",
     },
      "ikuai_cputemp": {
         "icon": "mdi:thermometer",
         "label": "CPU温度",
-        "name": "ikuai_cputemp",
+        "name": "CPU_temperature",
         "unit_of_measurement": "°C",
         "device_class": "temperature",
     },
     "ikuai_memory": {
         "icon": "mdi:memory",
         "label": "内存占用",
-        "name": "ikuai_memory",
+        "name": "Memory",
         "unit_of_measurement": "%",
     },
     "ikuai_online_user": {
         "icon": "mdi:account-multiple",
         "label": "在线终端数",
-        "name": "ikuai_online_user",
+        "name": "Online_user",
     },
     "ikuai_ap_online": {
         "icon": "mdi:access-point",
         "label": "AP数",
-        "name": "ikuai_ap_online",
+        "name": "Ap_online",
     },    
     "ikuai_total_up": {
         "icon": "mdi:upload-network",
         "label": "上传总量",
-        "name": "ikuai_totalup",
+        "name": "Totalup",
         "unit_of_measurement": "GB",
     },
     "ikuai_total_down": {
         "icon": "mdi:download-network",
         "label": "下载总量",
-        "name": "ikuai_totaldown",
+        "name": "Totaldown",
         "unit_of_measurement": "GB",
     },     
     "ikuai_upload": {
         "icon": "mdi:wifi-arrow-up",
         "label": "上传速度",
-        "name": "ikuai_upload",
+        "name": "Upload",
         "unit_of_measurement": "MB/s",
     },
     "ikuai_download": {
         "icon": "mdi:wifi-arrow-down",
         "label": "下载速度",
-        "name": "ikuai_download",
+        "name": "Download",
         "unit_of_measurement": "MB/s",
     },
     "ikuai_connect_num": {
-        "icon": "mdi:wifi-arrow-down",
+        "icon": "mdi:lan-connect",
         "label": "连接数",
-        "name": "ikuai_connect_num",
+        "name": "Connect_num",
     },
     "ikuai_wan_ip": {
         "icon": "mdi:ip-network-outline",
         "label": "WAN IP",
-        "name": "ikuai_wan_ip",
+        "name": "Wan_ip",
     },
     "ikuai_wan_uptime": {
         "icon": "mdi:timer-sync-outline",
         "label": "WAN Uptime",
-        "name": "ikuai_wan_uptime",
+        "name": "Wan_uptime",
     },
     "ikuai_wan6_ip": {
         "icon": "mdi:ip-network",
         "label": "WAN IP6",
-        "name": "ikuai_wan6_ip",
+        "name": "Wan6_ip",
     },
 }
 
@@ -105,31 +105,29 @@ SENSOR_TYPES = {
 BUTTON_TYPES = {
     "ikuai_restart": {
         "label": "Ikuai重启",
-        "name": "ikuai_restart",
+        "name": "Restart",
         "device_class": "restart",
         "action_body": {"func_name":"reboots","action":"reboots"}
     },
     "ikuai_restart_reconnect_wan": {
-        "label": "ikuai重连wan网络",
-        "name": "ikuai_reconnect_wan",
+        "label": "重连wan网络",
+        "name": "Reconnect_wan",
         "device_class": "restart",
         "action_body": {"func_name":"wan","action":"link_dhcp_reconnect","param":{"id":1}}
     },
 }
 
 DEVICE_TRACKERS = {
-    "myiphone1": {
+    "myiphone": {
         "label": "我的手机",
-        "name": "iphone13_1",
+        "name": "iPhone13_dscao",
         "icon": "mdi:cellphone",
         "mac_address": "64:6d:2f:88:4c:e8"
     },
-    "myiphone2": {
-        "label": "我的手机2",
-        "name": "iphone13_2",
+    "hyqiphone": {
+        "label": "hyq的手机",
+        "name": "iPhone13_hyq",
         "icon": "mdi:cellphone",
         "mac_address": "a8:fe:9d:38:82:4d"
-    },
-    
-    
+    },    
 }

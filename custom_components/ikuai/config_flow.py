@@ -94,7 +94,7 @@ class FlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             config_data[CONF_USERNAME] = username
             config_data[CONF_PASSWD] = passwd
             config_data[CONF_PASS] = pas
-            return self.async_create_entry(title="iKuai", data=config_data)
+            return self.async_create_entry(title=f"ikuai-{host.split('//')[1]}", data=config_data)
 
         return await self._show_config_form(user_input)
 

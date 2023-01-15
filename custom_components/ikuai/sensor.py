@@ -22,12 +22,15 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 class IKUAISensor(CoordinatorEntity):
     """Define an bjtoon_health_code entity."""
+    
+    _attr_has_entity_name = True
 
     def __init__(self, kind, coordinator):
         """Initialize."""
         super().__init__(coordinator)
         self.kind = kind
         self.coordinator = coordinator
+        
 
     @property
     def name(self):

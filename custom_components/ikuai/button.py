@@ -46,7 +46,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 class IKUAIButton(ButtonEntity):
     """Define an bjtoon_health_code entity."""
-
+    _attr_has_entity_name = True
     def __init__(self, hass, kind, coordinator, host, username, passwd, pas):
         """Initialize."""
         super().__init__()
