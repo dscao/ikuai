@@ -114,7 +114,7 @@ class IKUAIDataUpdateCoordinator(DataUpdateCoordinator):
                 self._token_expire_time = time.time() + 60*60*2          
                 return self._token
             else:
-                _LOGGER.info("The password has been incorrect for many times, please reconfigure the ikuai integration.")
+                _LOGGER.error("The username or password has been incorrect, please reconfigure the ikuai integration.")
                 return
 
     async def _async_update_data(self):

@@ -359,7 +359,7 @@ class DataFetcher:
         return
         
         
-    async def _get_ikuai_device_tracker(self, sess_key, macaddress):
+    async def _get_ikuai_device_tracker(self, sess_key, macaddress, disconnect_refresh_times):
         header = {
             'Cookie': 'Cookie: username=admin; login=1; sess_key='+sess_key,
             'Accept': 'application/json, text/plain, */*',
@@ -398,7 +398,7 @@ class DataFetcher:
                 self._datarefreshtimes[macaddress] = 0
                 _LOGGER.debug("%s refreshtimes: %s", macaddress, self._datarefreshtimes[macaddress])
         elif self._datarefreshtimes.get(macaddress):            
-            if self._datarefreshtimes[macaddress] < 5 :
+            if self._datarefreshtimes[macaddress] < disconnect_refresh_times:
                 self._data["tracker"].append(self._datatracker[macaddress])
                 self._datarefreshtimes[macaddress] = self._datarefreshtimes[macaddress] + 1
         
@@ -470,8 +470,12 @@ class DataFetcher:
         self._data["tracker"] = []
         threads = []
         for device_tracker in DEVICE_TRACKERS:
+            if DEVICE_TRACKERS[device_tracker].get("disconnect_refresh_times"):
+                disconnect_refresh_times = DEVICE_TRACKERS[device_tracker].get("disconnect_refresh_times")
+            else:
+                disconnect_refresh_times = 2
             threads = [            
-                self._get_ikuai_device_tracker(sess_key, DEVICE_TRACKERS[device_tracker]["mac_address"])
+                self._get_ikuai_device_tracker(sess_key, DEVICE_TRACKERS[device_tracker]["mac_address"], disconnect_refresh_times)
                 ]
             await asyncio.wait(threads)
         

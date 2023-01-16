@@ -136,12 +136,27 @@ DEVICE_TRACKERS = {
         "label": "我的手机",
         "name": "iPhone13_dscao",
         "icon": "mdi:cellphone",
-        "mac_address": "64:6d:2f:88:4c:e8"
+        "mac_address": "64:6d:2f:88:4c:e8",
+        "disconnect_refresh_times": 5
     },
     "hyqiphone": {
         "label": "hyq的手机",
         "name": "iPhone13_hyq",
         "icon": "mdi:cellphone",
-        "mac_address": "a8:fe:9d:38:82:4d"
+        "mac_address": "a8:fe:9d:38:82:4d",
+        "disconnect_refresh_times": 5
+    }, 
+    "cwlphone": {
+        "label": "cwl的手机",
+        "name": "PhoneRedmi_cwl",
+        "icon": "mdi:cellphone",
+        "mac_address": "38:e6:0a:82:89:8d"
+    },
+    "phone403": {
+        "label": "403的手机",
+        "name": "Phone403",
+        "icon": "mdi:cellphone",
+        "mac_address": "54:25:ea:54:5e:05",
+        "disconnect_refresh_times": 10
     },    
 }
