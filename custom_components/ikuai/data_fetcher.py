@@ -397,7 +397,7 @@ class DataFetcher:
                     self._data["tracker"].append(self._datatracker[macaddress])
                 self._datarefreshtimes[macaddress] = 0
                 _LOGGER.debug("%s refreshtimes: %s", macaddress, self._datarefreshtimes[macaddress])
-        elif self._datarefreshtimes.get(macaddress):            
+        elif self._datatracker.get(macaddress):            
             if self._datarefreshtimes[macaddress] < disconnect_refresh_times:
                 self._data["tracker"].append(self._datatracker[macaddress])
                 self._datarefreshtimes[macaddress] = self._datarefreshtimes[macaddress] + 1
