@@ -213,7 +213,7 @@ class IKUAISwitch(SwitchEntity):
 
 class IKUAISwitchmac(SwitchEntity):
     _attr_has_entity_name = True
-    def __init__(self, hass, coordinator, host, username, passwd, pas, mac):
+    def __init__(self, hass, coordinator, host, username, passwd, pas, macid):
         """Initialize."""
         super().__init__()
         self.coordinator = coordinator        
@@ -234,20 +234,21 @@ class IKUAISwitchmac(SwitchEntity):
         self._allow_login = True    
         self._fetcher = DataFetcher(hass, host, username, passwd, pas)
         self._host = host
-        self._mac = mac
+        self._macid = macid
         self._change = True
         
         listmacswitch = coordinator.data.get("mac_control")
         if isinstance(listmacswitch, list):
             #_LOGGER.debug(listvmdata)
             for macswitch in listmacswitch:
-                if macswitch["id"] == mac:
+                if macswitch["id"] == macid:
                     _LOGGER.debug(macswitch)
-                    if macswitch.get("comment"):
-                        self._name = "Mac_control_" + str(mac)+"("+macswitch["comment"]+")"
-                    else:
-                        self._name = "Mac_control_" + str(mac)+"(未备注)"
                     self._mac_address = macswitch["mac"]
+                    self._mac = str(self._mac_address).replace(":","")
+                    if macswitch.get("comment"):
+                        self._name = "Mac_control_" + self._mac[-6:] +"("+macswitch["comment"]+")"
+                    else:
+                        self._name = "Mac_control_" + self._mac[-6:] +"(未备注)"                    
                     self._is_on = macswitch["enabled"] == "yes"
                     self._state = "on" if self._is_on == True else "off"
                     self._querytime = self.coordinator.data["querytime"]
@@ -322,9 +323,8 @@ class IKUAISwitchmac(SwitchEntity):
         if isinstance(listmacswitch, list):
             #_LOGGER.debug(listvmdata)
             for macswitch in listmacswitch:
-                if macswitch["id"] == self._mac:
+                if macswitch["id"] == self._macid:
                     _LOGGER.debug(macswitch)
-                    self._mac_address = macswitch["mac"]
                     if self._change == True:
                         self._is_on = macswitch["enabled"] == "yes"
                         self._state = "on" if self._is_on == True else "off"
