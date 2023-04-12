@@ -113,7 +113,7 @@ BUTTON_TYPES = {
         "label": "重连wan网络",
         "name": "Reconnect_wan",
         "device_class": "restart",
-        "action_body": {"func_name":"wan","action":"link_dhcp_reconnect","param":{"id":1}}
+        "action_body": {"func_name":"wan","action":"link_pppoe_reconnect","param":{"id":1}}
     },
 }
 
