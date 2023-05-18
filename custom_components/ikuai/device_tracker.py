@@ -58,7 +58,6 @@ class IKUAITracker(ScannerEntity):
         self._hass = hass        
         self._is_connected = None
         self._attrs = {}
-        self._querytime = ""
         
 
     @property
@@ -95,9 +94,7 @@ class IKUAITracker(ScannerEntity):
         attrs = {}
         if self._attrs:
             attrs = self._attrs
-        attrs["querytime"] = self._querytime        
-        return attrs       
-
+        return attrs
     
 
     async def async_added_to_hass(self):
@@ -113,7 +110,6 @@ class IKUAITracker(ScannerEntity):
         listtracker = self.coordinator.data.get("tracker")
         self._is_connected = False
         self._attrs = {}
-        self._querytime = self.coordinator.data["querytime"]
         
         if isinstance(listtracker, list):
             for tracker in listtracker:
@@ -122,6 +118,3 @@ class IKUAITracker(ScannerEntity):
                     _LOGGER.debug(tracker)
                     self._is_connected = True
                     self._attrs = tracker
-                    self._querytime = self.coordinator.data["querytime"]
-
-
