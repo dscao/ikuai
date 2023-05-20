@@ -299,7 +299,7 @@ class IKUAISwitchmac(SwitchEntity):
         """Turn switch on."""
         self._is_on = True
         self._change = False
-        mac_json_body = {"func_name":"acl_mac","action":"up","param":{"id":str(self._macid)}}
+        mac_json_body = {"func_name":"acl_mac","action":"up","param":{"id":str(self._mac)}}
         await self._mac_control_switch(mac_json_body) 
 
 
@@ -307,7 +307,7 @@ class IKUAISwitchmac(SwitchEntity):
         """Turn switch off."""
         self._is_on = False
         self._change = False
-        mac_json_body = {"func_name":"acl_mac","action":"down","param":{"id":str(self._macid)}}
+        mac_json_body = {"func_name":"acl_mac","action":"down","param":{"id":str(self._mac)}}
         await self._mac_control_switch(mac_json_body)
 
     async def async_added_to_hass(self):
@@ -318,7 +318,7 @@ class IKUAISwitchmac(SwitchEntity):
 
     async def async_update(self):
         """Update entity."""
-        await self.coordinator.async_request_refresh()
+        #await self.coordinator.async_request_refresh()
         listmacswitch = self.coordinator.data.get("mac_control")
         if isinstance(listmacswitch, list):
             #_LOGGER.debug(listvmdata)
