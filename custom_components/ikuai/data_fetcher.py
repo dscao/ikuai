@@ -441,43 +441,43 @@ class DataFetcher:
             
         
     async def get_data(self, sess_key):  
-        threads = [            
-            self._get_ikuai_status(sess_key)
+        tasks = [            
+            asyncio.create_task(self._get_ikuai_status(sess_key)),
         ]
-        await asyncio.wait(threads)
+        await asyncio.gather(*tasks)
         
-        threads = [            
-            self._get_ikuai_waninfo(sess_key),
-            self._get_ikuai_wan6info(sess_key),
-            self._get_ikuai_mac_control(sess_key),
+        tasks = [
+            asyncio.create_task(self._get_ikuai_waninfo(sess_key)),
+            asyncio.create_task(self._get_ikuai_wan6info(sess_key)),
+            asyncio.create_task(self._get_ikuai_mac_control(sess_key)),
         ]
-        await asyncio.wait(threads)        
+        await asyncio.gather(*tasks)
        
         if (self._data["ikuai_internet"] == 3 or self._data["ikuai_internet"] ==4) and int(self._data["ikuai_count_pppoe"])>0:
-            threads = [            
-            self._get_ikuai_showvlan(sess_key, self._data["ikuai_internet"])
+            tasks = [            
+            asyncio.create_task(self._get_ikuai_showvlan(sess_key, self._data["ikuai_internet"])),
             ]
-            await asyncio.wait(threads)
+            await asyncio.gather(*tasks)
             
         self._data["switch"] = []
-        threads = []
+        tasks = []
         for switch in SWITCH_TYPES:
-            threads = [            
-                self._get_ikuai_switch(sess_key, SWITCH_TYPES[switch]['name'], SWITCH_TYPES[switch]['show_body'], SWITCH_TYPES[switch]['show_on'], SWITCH_TYPES[switch]['show_off'])
+            tasks = [            
+                asyncio.create_task(self._get_ikuai_switch(sess_key, SWITCH_TYPES[switch]['name'], SWITCH_TYPES[switch]['show_body'], SWITCH_TYPES[switch]['show_on'], SWITCH_TYPES[switch]['show_off'])),
                 ]
-            await asyncio.wait(threads)
+            await asyncio.gather(*tasks)
             
         self._data["tracker"] = []
-        threads = []
+        tasks = []
         for device_tracker in DEVICE_TRACKERS:
             if DEVICE_TRACKERS[device_tracker].get("disconnect_refresh_times"):
                 disconnect_refresh_times = DEVICE_TRACKERS[device_tracker].get("disconnect_refresh_times")
             else:
                 disconnect_refresh_times = 2
-            threads = [            
-                self._get_ikuai_device_tracker(sess_key, DEVICE_TRACKERS[device_tracker]["mac_address"], disconnect_refresh_times)
+            tasks = [            
+                asyncio.create_task(self._get_ikuai_device_tracker(sess_key, DEVICE_TRACKERS[device_tracker]["mac_address"], disconnect_refresh_times)),
                 ]
-            await asyncio.wait(threads)
+            await asyncio.gather(*tasks)
         
         _LOGGER.debug(self._data)
         return self._data
