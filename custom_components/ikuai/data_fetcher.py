@@ -173,15 +173,24 @@ class DataFetcher:
         self._data["device_name"] = resdata["Data"]["sysstat"]["hostname"]
         
         
-        if resdata["Data"]["sysstat"]["cputemp"]:
+        if resdata["Data"]["sysstat"].get("cputemp"):
             self._data["ikuai_cputemp"] = resdata["Data"]["sysstat"]["cputemp"][0]
         else:
             self._data["ikuai_cputemp"] = ""
+            
+        if resdata["Data"]["sysstat"].get("cpu"):
+            self._data["ikuai_cpu"] = resdata["Data"]["sysstat"]["cpu"][0].replace("%","")
+        else:
+            self._data["ikuai_cpu"] = ""
+            
+        if resdata["Data"]["sysstat"].get("memory"):
+            self._data["ikuai_memory"] = resdata["Data"]["sysstat"]["memory"]["used"].replace("%","")
+            self._data["ikuai_memory_attrs"] = resdata["Data"]["sysstat"]["memory"]
+        else:
+            self._data["ikuai_memory"] = ""
+            self._data["ikuai_memory_attrs"] = ""
         
-        self._data["ikuai_uptime"] = self.seconds_to_dhms(resdata["Data"]["sysstat"]["uptime"])        
-        self._data["ikuai_cpu"] = resdata["Data"]["sysstat"]["cpu"][0].replace("%","")
-        self._data["ikuai_memory"] = resdata["Data"]["sysstat"]["memory"]["used"].replace("%","")
-        self._data["ikuai_memory_attrs"] = resdata["Data"]["sysstat"]["memory"]
+        self._data["ikuai_uptime"] = self.seconds_to_dhms(resdata["Data"]["sysstat"]["uptime"])      
         self._data["ikuai_online_user"] = resdata["Data"]["sysstat"]["online_user"]["count"]
         self._data["ikuai_online_user_attrs"] = resdata["Data"]["sysstat"]["online_user"]
         self._data["ikuai_connect_num"] = int(resdata["Data"]["sysstat"]["stream"]["connect_num"])
