@@ -107,7 +107,7 @@ class IKUAITracker(ScannerEntity):
         )
 
     async def async_update(self):
-        """Update Bjtoon health code entity."""
+        """Update entity."""
         #await self.coordinator.async_request_refresh()        
 
         listtracker = self.coordinator.data.get("tracker")

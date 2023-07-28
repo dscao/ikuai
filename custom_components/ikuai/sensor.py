@@ -101,5 +101,5 @@ class IKUAISensor(CoordinatorEntity):
         )
 
     async def async_update(self):
-        """Update Bjtoon health code entity."""
+        """Update entity."""
         #await self.coordinator.async_request_refresh()
