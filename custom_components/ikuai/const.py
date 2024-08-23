@@ -49,11 +49,13 @@ SENSOR_TYPES = {
         "icon": "mdi:account-multiple",
         "label": "在线终端数",
         "name": "Online_user",
+        "unit_of_measurement": "个",
     },
     "ikuai_ap_online": {
         "icon": "mdi:access-point",
         "label": "AP数",
         "name": "Ap_online",
+        "unit_of_measurement": "个",
     },    
     "ikuai_total_up": {
         "icon": "mdi:upload-network",
@@ -83,6 +85,7 @@ SENSOR_TYPES = {
         "icon": "mdi:lan-connect",
         "label": "连接数",
         "name": "Connect_num",
+        "unit_of_measurement": "个",
     },
     "ikuai_wan_ip": {
         "icon": "mdi:ip-network-outline",
@@ -129,6 +132,16 @@ SWITCH_TYPES = {
         "show_on": {'arp_filter': 1},
         "show_off": {'arp_filter': 0},
     },
+    "ikuai_nas_port_flow_to_world": {
+        "icon": "mdi:nas",
+        "label": "NAS分流至科学上网",
+        "name": "Nas_flow_to_world",
+        "turn_on_body": {"func_name":"stream_ipport","action":"up","param":{"id":5}},
+        "turn_off_body":{"func_name":"stream_ipport","action":"down","param":{"id":5}},
+        "show_body": {"func_name":"stream_ipport","action":"show","param":{"TYPE":"data","limit":"0,20","ORDER_BY":"","ORDER":"","FINDS":"comment","KEYWORDS":"nas科学上网"}},
+        "show_on": {'enabled':"yes"},
+        "show_off": {'enabled':"no"},
+    },
 }
 
 DEVICE_TRACKERS = {
@@ -137,7 +150,7 @@ DEVICE_TRACKERS = {
         "name": "iPhone13_dscao",
         "icon": "mdi:cellphone",
         "mac_address": "64:6d:2f:88:4c:e8",
-        "disconnect_refresh_times": 5
+        "disconnect_refresh_times": 2
     },
     "hyqiphone": {
         "label": "hyq的手机",
@@ -151,13 +164,34 @@ DEVICE_TRACKERS = {
         "name": "PhoneRedmi_cwl",
         "icon": "mdi:cellphone",
         "mac_address": "38:e6:0a:82:89:8d",
-        "disconnect_refresh_times": 3
+        "disconnect_refresh_times": 10
     },
     "phone403": {
         "label": "403的手机",
         "name": "Phone403",
         "icon": "mdi:cellphone",
         "mac_address": "54:25:ea:54:5e:05",
-        "disconnect_refresh_times": 5
-    },    
+        "disconnect_refresh_times": 15
+    }, 
+    "oppok7": {
+        "label": "oppo-k7",
+        "name": "Oppo K7",
+        "icon": "mdi:cellphone",
+        "mac_address": "b0:c9:52:7e:c1:63",
+        "disconnect_refresh_times": 10
+    }, 
+    "oppoa11": {
+        "label": "oppo-a11",
+        "name": "Oppo A11",
+        "icon": "mdi:cellphone",
+        "mac_address": "9c:f5:31:ed:77:39",
+        "disconnect_refresh_times": 10
+    }, 
+    "vivo_y93s": {
+        "label": "vivo_y93s",
+        "name": "Vivo y93s",
+        "icon": "mdi:cellphone",
+        "mac_address": "80:8a:8b:f6:1e:ff",
+        "disconnect_refresh_times": 10
+    },     
 }

@@ -441,11 +441,26 @@ class DataFetcher:
             return
         if resdata["Result"] == 10014:
             self._data = 401
-            return  
-        if resdata.get("Data") == show_on:
-            self._data["switch"].append({"name":name,"onoff":"on"})
-        elif resdata.get("Data") == show_off:
-            self._data["switch"].append({"name":name,"onoff":"off"})
+            return
+            
+        
+        for key, value in show_on.items():
+            show_on_key = key
+            show_on_value = value
+        for key, value in show_off.items():
+            show_off_key = key
+            show_off_value = value
+            
+        if show_body["param"].get("TYPE") == "data":
+            if resdata.get("Data")['data'][0][show_on_key] == show_on_value:
+                self._data["switch"].append({"name":name,"onoff":"on"})
+            elif resdata.get("Data")['data'][0][show_off_key] == show_off_value:
+                self._data["switch"].append({"name":name,"onoff":"off"})
+        else:
+            if resdata.get("Data")[show_on_key] == show_on_value:
+                self._data["switch"].append({"name":name,"onoff":"on"})
+            elif resdata.get("Data")[show_off_key] == show_off_value:
+                self._data["switch"].append({"name":name,"onoff":"off"})
         return        
             
         
