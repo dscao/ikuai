@@ -168,6 +168,7 @@ class DataFetcher:
             return
             
         self._data = {}
+        self._data["ikuai_wan_ip"] = "未检测到默认网关线路"
 
         self._data["sw_version"] = resdata["Data"]["sysstat"]["verinfo"]["verstring"]
         self._data["device_name"] = resdata["Data"]["sysstat"]["hostname"]
@@ -236,23 +237,27 @@ class DataFetcher:
             self._data = 401
             return            
 
-        if resdata["Data"].get("snapshoot_wan"):
-            self._data["ikuai_internet"] = resdata["Data"]["snapshoot_wan"][0]["internet"]
-            self._data["ikuai_count_pppoe"] = resdata["Data"]["snapshoot_wan"][0]["count_pppoe"]
-            if self._data["ikuai_internet"] == 0 or self._data["ikuai_internet"] ==1 or self._data["ikuai_internet"] == 2:
-                self._data["ikuai_wan_ip"] = resdata["Data"]["snapshoot_wan"][0]["ip_addr"]
-                self._data["ikuai_wan_ip_attrs"] = resdata["Data"]["snapshoot_wan"][0]
-                if resdata["Data"]["snapshoot_wan"][0]["updatetime"] == 0:
-                    self._data["ikuai_wan_uptime"] = ""
-                else:
-                    self._data["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - resdata["Data"]["snapshoot_wan"][0]["updatetime"])) 
-            else:
-                self._data["ikuai_wan_ip"] = ""
-                self._data["ikuai_wan_uptime"] = ""
+        if resdata["Data"].get("snapshoot_wan") and isinstance(resdata["Data"].get("snapshoot_wan"), list):
+            for snapshoot_wan in resdata["Data"]["snapshoot_wan"]:
+                if snapshoot_wan.get("default_route") == 1:
+                    self._data["ikuai_wan_ip"] = snapshoot_wan["ip_addr"]
+                    self._data["ikuai_wan_ip_attrs"] = snapshoot_wan
+                    if snapshoot_wan["updatetime"] == 0:
+                        self._data["ikuai_wan_uptime"] = ""
+                    else:
+                        self._data["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - snapshoot_wan["updatetime"])) 
+
+                elif snapshoot_wan["internet"] == 3 or snapshoot_wan["internet"] == 4:
+                    tasks = [            
+                    asyncio.create_task(self._get_ikuai_showvlan(sess_key, snapshoot_wan["interface"])),
+                    ]
+                    await asyncio.gather(*tasks)
+                
+                
         
         return
         
-    async def _get_ikuai_showvlan(self, sess_key, vlan_internet):
+    async def _get_ikuai_showvlan(self, sess_key, interface):
         header = {
             'Cookie': 'Cookie: username=admin; login=1; sess_key='+sess_key,
             'Accept': 'application/json, text/plain, */*',
@@ -262,7 +267,7 @@ class DataFetcher:
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.40 Safari/537.36',
         }
         
-        json_body = {"func_name":"wan","action":"show","param":{"TYPE":"vlan_data,vlan_total","ORDER_BY":"vlan_name","ORDER":"asc","vlan_internet":2,"interface":"wan1","limit":"0,20"}}
+        json_body = {"func_name":"wan","action":"show","param":{"TYPE":"vlan_data,vlan_total","ORDER_BY":"vlan_name","ORDER":"asc","vlan_internet":2,"interface":interface,"limit":"0,20"}}
         
 
         url =  self._host + ACTION_URL
@@ -285,7 +290,7 @@ class DataFetcher:
         if resdata["Data"].get("vlan_data"):
             vlan_datas = resdata["Data"]["vlan_data"]
             for vlan_data in vlan_datas:
-                if vlan_data["pppoe_updatetime"] != 0:
+                if vlan_data["pppoe_updatetime"] != 0 and vlan_data["default_route"] == 1:
                     self._data["ikuai_wan_ip"] = vlan_data["pppoe_ip_addr"]
                     self._data["ikuai_wan_ip_attrs"] = vlan_data
                     self._data["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - vlan_data["pppoe_updatetime"])) 
@@ -479,12 +484,6 @@ class DataFetcher:
             asyncio.create_task(self._get_ikuai_mac_control(sess_key)),
         ]
         await asyncio.gather(*tasks)
-       
-        if (self._data["ikuai_internet"] == 3 or self._data["ikuai_internet"] ==4) and int(self._data["ikuai_count_pppoe"])>0:
-            tasks = [            
-            asyncio.create_task(self._get_ikuai_showvlan(sess_key, self._data["ikuai_internet"])),
-            ]
-            await asyncio.gather(*tasks)
             
         self._data["switch"] = []
         tasks = []
