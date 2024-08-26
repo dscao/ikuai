@@ -112,12 +112,12 @@ BUTTON_TYPES = {
         "device_class": "restart",
         "action_body": {"func_name":"reboots","action":"reboots"}
     },
-    # "ikuai_restart_reconnect_wan": {  # 按需配置，如果ikuai中不存在会导致运行异常。
-    #    "label": "重连wan网络",
-    #    "name": "Reconnect_wan",
-    #    "device_class": "restart",
-    #    "action_body": {"func_name":"wan","action":"link_pppoe_reconnect","param":{"id":1}}
-    # }, 
+    "ikuai_restart_reconnect_wan": {
+        "label": "重连wan网络",
+        "name": "Reconnect_wan",
+        "device_class": "restart",
+        "action_body": {"func_name":"wan","action":"link_pppoe_reconnect","param":{"id":1}}
+    }, 
 }
 
 
@@ -132,16 +132,16 @@ SWITCH_TYPES = {
         "show_on": {'arp_filter': 1},
         "show_off": {'arp_filter': 0},
     },
-    "ikuai_nas_port_flow_to_world": {
-        "icon": "mdi:nas",
-        "label": "NAS分流至科学上网",
-        "name": "Nas_flow_to_world",
-        "turn_on_body": {"func_name":"stream_ipport","action":"up","param":{"id":5}},
-        "turn_off_body":{"func_name":"stream_ipport","action":"down","param":{"id":5}},
-        "show_body": {"func_name":"stream_ipport","action":"show","param":{"TYPE":"data","limit":"0,20","ORDER_BY":"","ORDER":"","FINDS":"comment","KEYWORDS":"nas科学上网"}},
-        "show_on": {'enabled':"yes"},
-        "show_off": {'enabled':"no"},
-    },
+    # "ikuai_nas_port_flow_to_world": {  # 按需要配置，如果ikuai中不存在会导致异常
+    #    "icon": "mdi:nas",
+    #    "label": "NAS分流至科学上网",
+    #    "name": "Nas_flow_to_world",
+    #    "turn_on_body": {"func_name":"stream_ipport","action":"up","param":{"id":5}},
+    #    "turn_off_body":{"func_name":"stream_ipport","action":"down","param":{"id":5}},
+    #    "show_body": {"func_name":"stream_ipport","action":"show","param":{"TYPE":"data","limit":"0,20","ORDER_BY":"","ORDER":"","FINDS":"comment","KEYWORDS":"nas科学上网"}},
+    #    "show_on": {'enabled':"yes"},
+    #    "show_off": {'enabled':"no"},
+    # },
 }
 
 DEVICE_TRACKERS = {
