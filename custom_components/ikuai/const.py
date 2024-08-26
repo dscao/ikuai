@@ -112,12 +112,12 @@ BUTTON_TYPES = {
         "device_class": "restart",
         "action_body": {"func_name":"reboots","action":"reboots"}
     },
-    "ikuai_restart_reconnect_wan": {
-        "label": "重连wan网络",
-        "name": "Reconnect_wan",
-        "device_class": "restart",
-        "action_body": {"func_name":"wan","action":"link_pppoe_reconnect","param":{"id":1}}
-    },
+    # "ikuai_restart_reconnect_wan": {  # 按需配置，如果ikuai中不存在会导致运行异常。
+    #    "label": "重连wan网络",
+    #    "name": "Reconnect_wan",
+    #    "device_class": "restart",
+    #    "action_body": {"func_name":"wan","action":"link_pppoe_reconnect","param":{"id":1}}
+    # }, 
 }
 
 
