@@ -96,7 +96,12 @@ class IKUAIButton(ButtonEntity):
     def should_poll(self):
         """Return the polling requirement of the entity."""
         return True
-
+        
+    @property
+    def available(self):
+        """Return True if entity is available."""
+        return self.coordinator.last_update_success
+        
     @property
     def state(self):
         """Return the state."""

@@ -84,15 +84,17 @@ class IKUAISwitch(SwitchEntity):
         self._turn_off_body = SWITCH_TYPES[self.kind]['turn_off_body']
         self._change = True
         self._switchonoff = None
+        self._is_on = None
         
         listswitch = self.coordinator.data.get("switch")
         
         for switchdata in listswitch:
             if switchdata["name"] == self._name:
                 self._switchonoff = switchdata["onoff"]
-                
-        self._is_on = self._switchonoff == "on"
-        self._state = "on" if self._is_on == True else "off"
+        if self._switchonoff:
+            self._is_on = self._switchonoff == "on"
+            self._state = "on" if self._is_on == True else "off"
+        
 
         
     async def get_access_token(self):
@@ -117,6 +119,10 @@ class IKUAISwitch(SwitchEntity):
     def unique_id(self):
         return f"{DOMAIN}_switch_{self.coordinator.host}_{self._name}"
 
+    @property
+    def available(self):
+        """Return True if entity is available."""
+        return self.coordinator.last_update_success == True and self._switchonoff != None
         
     @property
     def should_poll(self):

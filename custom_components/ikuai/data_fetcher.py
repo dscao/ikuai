@@ -451,6 +451,9 @@ class DataFetcher:
             show_off_key = key
             show_off_value = value
             
+        if resdata.get("Data").get("data") == []:
+            return
+            
         if show_body["param"].get("TYPE") == "data":
             if resdata.get("Data")['data'][0][show_on_key] == show_on_value:
                 self._data["switch"].append({"name":name,"onoff":"on"})
@@ -461,7 +464,7 @@ class DataFetcher:
                 self._data["switch"].append({"name":name,"onoff":"on"})
             elif resdata.get("Data")[show_off_key] == show_off_value:
                 self._data["switch"].append({"name":name,"onoff":"off"})
-        return        
+        return
             
         
     async def get_data(self, sess_key):  
