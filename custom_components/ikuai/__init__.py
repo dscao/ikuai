@@ -6,6 +6,8 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.core_config import Config
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+import voluptuous as vol
+import homeassistant.helpers.config_validation as cv
 from .data_fetcher import DataFetcher
 from .const import (
     DOMAIN,
@@ -16,6 +18,7 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     COORDINATOR,
     UNDO_UPDATE_LISTENER,
+    CONF_DEVICE_TRACKERS,
 )
 from homeassistant.exceptions import ConfigEntryNotReady
 
@@ -29,10 +32,41 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BUTTON, Platform.SWITCH, Platform.DEVICE_TRACKER]
 
+# Configuration schema for device trackers
+DEVICE_TRACKER_SCHEMA = vol.Schema({
+    vol.Optional("label"): cv.string,
+    vol.Required("name"): cv.string,
+    vol.Required("mac_address"): cv.string,
+    vol.Optional("icon", default="mdi:cellphone"): cv.string,
+    vol.Optional("disconnect_refresh_times", default=2): cv.positive_int,
+})
+
+# Configuration schema for the domain
+CONFIG_SCHEMA = vol.Schema({
+    DOMAIN: vol.Schema({
+        vol.Optional(CONF_DEVICE_TRACKERS, default={}): vol.Schema({
+            cv.string: DEVICE_TRACKER_SCHEMA
+        })
+    })
+}, extra=vol.ALLOW_EXTRA)
+
 
 async def async_setup(hass: HomeAssistant, config: Config) -> bool:
     """Set up configured ikuai."""
     hass.data.setdefault(DOMAIN, {})
+    
+    # Get device trackers configuration from configuration.yaml
+    conf = config.get(DOMAIN, {})
+    device_trackers_config = conf.get(CONF_DEVICE_TRACKERS, {})
+    
+    if device_trackers_config:
+        _LOGGER.info("Loaded %d device trackers from configuration.yaml", len(device_trackers_config))
+    else:
+        _LOGGER.info("No device trackers configured in configuration.yaml. Device tracking will be disabled.")
+    
+    # Store the device trackers configuration in hass.data
+    hass.data[DOMAIN]["device_trackers"] = device_trackers_config
+    
     return True
 
 
@@ -43,7 +77,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     passwd = entry.data[CONF_PASSWD]
     pas = entry.data[CONF_PASS]
     update_interval_seconds = entry.options.get(CONF_UPDATE_INTERVAL, 10)
-    coordinator = IKUAIDataUpdateCoordinator(hass, host, username, passwd, pas, update_interval_seconds)
+    
+    # Get device trackers configuration
+    device_trackers_config = hass.data[DOMAIN].get("device_trackers", {})
+    
+    coordinator = IKUAIDataUpdateCoordinator(hass, host, username, passwd, pas, update_interval_seconds, device_trackers_config)
     await coordinator.async_refresh()
 
     if not coordinator.last_update_success:
@@ -92,7 +130,7 @@ async def update_listener(hass, entry):
 class IKUAIDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching IKUAI data."""
 
-    def __init__(self, hass, host, username, passwd, pas, update_interval_seconds):
+    def __init__(self, hass, host, username, passwd, pas, update_interval_seconds, device_trackers_config=None):
         """Initialize."""
         update_interval = datetime.timedelta(seconds=update_interval_seconds)
         _LOGGER.debug("%s Data will be update every %s", host, update_interval)
@@ -102,7 +140,7 @@ class IKUAIDataUpdateCoordinator(DataUpdateCoordinator):
     
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=update_interval)
 
-        self._fetcher = DataFetcher(hass, host, username, passwd, pas)
+        self._fetcher = DataFetcher(hass, host, username, passwd, pas, device_trackers_config)
         self.host = host
         
     async def get_access_token(self):

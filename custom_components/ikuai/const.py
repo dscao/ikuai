@@ -10,6 +10,7 @@ CONF_HOST = "host"
 CONF_TOKEN_EXPIRE_TIME = "token_expire_time"
 COORDINATOR = "coordinator"
 CONF_UPDATE_INTERVAL = "update_interval_seconds"
+CONF_DEVICE_TRACKERS = "device_trackers"
 
 UNDO_UPDATE_LISTENER = "undo_update_listener"
 
@@ -142,56 +143,4 @@ SWITCH_TYPES = {
         "show_on": {'enabled':"yes"},
         "show_off": {'enabled':"no"},
     },
-}
-
-DEVICE_TRACKERS = {
-    "myiphone": {
-        "label": "我的手机",
-        "name": "iPhone13_dscao",
-        "icon": "mdi:cellphone",
-        "mac_address": "64:6d:2f:88:4c:e8",
-        "disconnect_refresh_times": 2
-    },
-    "hyqiphone": {
-        "label": "hyq的手机",
-        "name": "iPhone13_hyq",
-        "icon": "mdi:cellphone",
-        "mac_address": "a8:fe:9d:38:82:4d",
-        "disconnect_refresh_times": 2
-    }, 
-    "cwlphone": {
-        "label": "cwl的手机",
-        "name": "PhoneRedmi_cwl",
-        "icon": "mdi:cellphone",
-        "mac_address": "38:e6:0a:82:89:8d",
-        "disconnect_refresh_times": 10
-    },
-    "phone403": {
-        "label": "403的手机",
-        "name": "Phone403",
-        "icon": "mdi:cellphone",
-        "mac_address": "54:25:ea:54:5e:05",
-        "disconnect_refresh_times": 15
-    }, 
-    "oppok7": {
-        "label": "oppo-k7",
-        "name": "Oppo K7",
-        "icon": "mdi:cellphone",
-        "mac_address": "b0:c9:52:7e:c1:63",
-        "disconnect_refresh_times": 10
-    }, 
-    "oppoa11": {
-        "label": "oppo-a11",
-        "name": "Oppo A11",
-        "icon": "mdi:cellphone",
-        "mac_address": "9c:f5:31:ed:77:39",
-        "disconnect_refresh_times": 10
-    }, 
-    "vivo_y93s": {
-        "label": "vivo_y93s",
-        "name": "Vivo y93s",
-        "icon": "mdi:cellphone",
-        "mac_address": "80:8a:8b:f6:1e:ff",
-        "disconnect_refresh_times": 10
-    },     
 }

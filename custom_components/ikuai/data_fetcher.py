@@ -17,7 +17,6 @@ from requests.adapters import HTTPAdapter
 from .const import (
     LOGIN_URL,
     ACTION_URL,
-    DEVICE_TRACKERS,
     SWITCH_TYPES,
 )
 
@@ -28,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 class DataFetcher:
     """fetch the ikuai data"""
 
-    def __init__(self, hass, host, username, passwd, pas):
+    def __init__(self, hass, host, username, passwd, pas, device_trackers_config=None):
 
         self._host = host
         self._username = username
@@ -39,6 +38,7 @@ class DataFetcher:
         self._data = {}
         self._datatracker = {}
         self._datarefreshtimes = {}
+        self._device_trackers_config = device_trackers_config or {}
     
     def is_json(self, jsonstr):
         try:
@@ -495,13 +495,13 @@ class DataFetcher:
             
         self._data["tracker"] = []
         tasks = []
-        for device_tracker in DEVICE_TRACKERS:
-            if DEVICE_TRACKERS[device_tracker].get("disconnect_refresh_times"):
-                disconnect_refresh_times = DEVICE_TRACKERS[device_tracker].get("disconnect_refresh_times")
+        for device_tracker in self._device_trackers_config:
+            if self._device_trackers_config[device_tracker].get("disconnect_refresh_times"):
+                disconnect_refresh_times = self._device_trackers_config[device_tracker].get("disconnect_refresh_times")
             else:
                 disconnect_refresh_times = 2
             tasks = [            
-                asyncio.create_task(self._get_ikuai_device_tracker(sess_key, DEVICE_TRACKERS[device_tracker]["mac_address"], disconnect_refresh_times)),
+                asyncio.create_task(self._get_ikuai_device_tracker(sess_key, self._device_trackers_config[device_tracker]["mac_address"], disconnect_refresh_times)),
                 ]
             await asyncio.gather(*tasks)
         
