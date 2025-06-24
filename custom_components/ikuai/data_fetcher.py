@@ -27,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 class DataFetcher:
     """fetch the ikuai data"""
 
-    def __init__(self, hass, host, username, passwd, pas, device_trackers_config=None):
+    def __init__(self, hass, host, username, passwd, pas, device_trackers_config=None, custom_switches_config=None):
 
         self._host = host
         self._username = username
@@ -39,6 +39,7 @@ class DataFetcher:
         self._datatracker = {}
         self._datarefreshtimes = {}
         self._device_trackers_config = device_trackers_config or {}
+        self._custom_switches_config = custom_switches_config or {}
     
     def is_json(self, jsonstr):
         try:
@@ -487,9 +488,22 @@ class DataFetcher:
             
         self._data["switch"] = []
         tasks = []
+        
+        # Process built-in switches
         for switch in SWITCH_TYPES:
             tasks = [            
                 asyncio.create_task(self._get_ikuai_switch(sess_key, SWITCH_TYPES[switch]['name'], SWITCH_TYPES[switch]['show_body'], SWITCH_TYPES[switch]['show_on'], SWITCH_TYPES[switch]['show_off'])),
+                ]
+            await asyncio.gather(*tasks)
+        
+        # Process custom switches from configuration
+        for switch_key, switch_config in self._custom_switches_config.items():
+            show_body = switch_config.get('show_body', {})
+            show_on = switch_config.get('show_on', {})
+            show_off = switch_config.get('show_off', {})
+            
+            tasks = [            
+                asyncio.create_task(self._get_ikuai_switch(sess_key, switch_config['name'], show_body, show_on, show_off)),
                 ]
             await asyncio.gather(*tasks)
             

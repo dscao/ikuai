@@ -11,6 +11,7 @@ CONF_TOKEN_EXPIRE_TIME = "token_expire_time"
 COORDINATOR = "coordinator"
 CONF_UPDATE_INTERVAL = "update_interval_seconds"
 CONF_DEVICE_TRACKERS = "device_trackers"
+CONF_CUSTOM_SWITCHES = "custom_switches"
 
 UNDO_UPDATE_LISTENER = "undo_update_listener"
 
@@ -132,15 +133,5 @@ SWITCH_TYPES = {
         "show_body": {"func_name":"arp","action":"show","param":{"TYPE":"options"}},
         "show_on": {'arp_filter': 1},
         "show_off": {'arp_filter': 0},
-    },
-    "ikuai_nas_port_flow_to_world": {
-        "icon": "mdi:nas",
-        "label": "NAS分流至科学上网",
-        "name": "Nas_flow_to_world",
-        "turn_on_body": {"func_name":"stream_ipport","action":"up","param":{"id":5}},
-        "turn_off_body":{"func_name":"stream_ipport","action":"down","param":{"id":5}},
-        "show_body": {"func_name":"stream_ipport","action":"show","param":{"TYPE":"data","limit":"0,20","ORDER_BY":"","ORDER":"","FINDS":"comment","KEYWORDS":"nas科学上网"}},
-        "show_on": {'enabled':"yes"},
-        "show_off": {'enabled':"no"},
     },
 }
