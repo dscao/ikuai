@@ -1,5 +1,5 @@
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![ha-inkwavemap version](https://img.shields.io/badge/ikuai-2024.8.26-blue.svg)](https://github.com/dscao/ikuai)
+[![ha-inkwavemap version](https://img.shields.io/badge/ikuai-2025.1.5-blue.svg)](https://github.com/dscao/ikuai)
 
 ### ha custom_component iKuai
 
