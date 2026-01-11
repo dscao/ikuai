@@ -113,15 +113,29 @@ class IKUAITracker(ScannerEntity):
         listtracker = self.coordinator.data.get("tracker")
         self._is_connected = False
         self._attrs = {}
-        self._querytime = self.coordinator.data["querytime"]
+        self._querytime = self.coordinator.data.get("querytime", "")
+        
+
+        conf = DEVICE_TRACKERS[self.kind]
         
         if isinstance(listtracker, list):
             for tracker in listtracker:
-                #_LOGGER.debug(tracker)
-                if tracker["mac"] == DEVICE_TRACKERS[self.kind]["mac_address"]:
-                    _LOGGER.debug(tracker)
+                _LOGGER.debug(tracker)
+                is_match = False
+                
+
+                if conf.get("mac_address"):
+                    if str(tracker["mac"]).lower() == str(conf["mac_address"]).lower():
+                        is_match = True
+                
+
+                elif conf.get("ip_address"):
+                     if tracker["ip_addr"] == conf["ip_address"]:
+                        is_match = True
+                
+                if is_match:
+                    _LOGGER.debug("Tracker matched: %s", tracker)
                     self._is_connected = True
                     self._attrs = tracker
-                    self._querytime = self.coordinator.data["querytime"]
-
-
+                    self._querytime = self.coordinator.data.get("querytime", "")
+                    break
