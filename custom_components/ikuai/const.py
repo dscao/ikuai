@@ -142,6 +142,16 @@ SWITCH_TYPES = {
         "show_on": {'enabled':"yes"},
         "show_off": {'enabled':"no"},
     },
+    "ikuai_stream_control": {
+        "icon": "mdi:network-outline",
+        "label": "iKuai流控模式",
+        "name": "Stream control",
+        "turn_on_body": {"func_name": "stream_control", "action": "seting", "param": {"stream_ctl_mode": 1}},
+        "turn_off_body": {"func_name": "stream_control", "action": "seting", "param": {"stream_ctl_mode": 0}},
+        "show_body": {"func_name":"stream_control","action":"show","param":{"TYPE":"stream_ctl_mode"}},
+        "show_on": {"stream_ctl_mode": 1},
+        "show_off": {"stream_ctl_mode": 0},
+    },
 }
 
 DEVICE_TRACKERS = {
@@ -193,5 +203,12 @@ DEVICE_TRACKERS = {
         "icon": "mdi:cellphone",
         "mac_address": "80:8a:8b:f6:1e:ff",
         "disconnect_refresh_times": 10
-    },     
+    },
+    "pc_y7000": {
+        "label": "拯救者Y7000",
+        "name": "My_PC",
+        "icon": "mdi:desktop-tower",
+        "ip_address": "192.168.1.100",
+        "disconnect_refresh_times": 2
+    },
 }
