@@ -496,13 +496,25 @@ class DataFetcher:
         self._data["tracker"] = []
         tasks = []
         for device_tracker in DEVICE_TRACKERS:
-            if DEVICE_TRACKERS[device_tracker].get("disconnect_refresh_times"):
-                disconnect_refresh_times = DEVICE_TRACKERS[device_tracker].get("disconnect_refresh_times")
+            conf = DEVICE_TRACKERS[device_tracker]
+            # 优先取 MAC，如果没有 MAC 就取 IP
+            search_key = conf.get("mac_address")
+            if not search_key:
+                search_key = conf.get("ip_address")
+            
+            if not search_key:
+                continue
+                
+            if conf.get("disconnect_refresh_times"):
+                disconnect_refresh_times = conf.get("disconnect_refresh_times")
             else:
                 disconnect_refresh_times = 2
-            tasks = [            
-                asyncio.create_task(self._get_ikuai_device_tracker(sess_key, DEVICE_TRACKERS[device_tracker]["mac_address"], disconnect_refresh_times)),
-                ]
+            
+            tasks.append(
+                asyncio.create_task(self._get_ikuai_device_tracker(sess_key, search_key, disconnect_refresh_times))
+            )
+
+        if tasks:
             await asyncio.gather(*tasks)
         
         _LOGGER.debug(self._data)
