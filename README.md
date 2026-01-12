@@ -8,15 +8,16 @@ iKuai router Obtains data generating entities through the Web.
 1. Sensor entities such as network information
 2. Restart ikuai and reconnect to the network function
 3. Behavior control—MAC enable and disable switch in the MAC access control list
-4. The device_tracker entity that supports whether the terminal device is online or not, configure the mac address in const.py.
+4. The device_tracker entity that supports whether the terminal device is online or not, configure the mac address in configuration.yaml.
+5. More customizable switch entities can be configured, just refer to and fill in the corresponding parameters in the packet capture. 
 
 iKuai路由器通过Web获取数据生成实体。
 
 1. 网络信息等传感器实体
 2. 重启ikuai并重新连接网络功能
 3. 行为控制—MAC访问控制列表中的MAC开启禁用开关
-4. 支持终端设备是否在线的device_tracker实体，在const.py中配置mac地址。
-5. 更多自定义的开关实体可在 const.py中配置，只需要参考填写抓包中的对应参数。
+4. 支持终端设备是否在线的device_tracker实体，在configuration.yaml 或packages的yaml文件中配置mac地址等相关资料
+5. 更多自定义的开关实体可配置，只需要参考填写抓包中的对应参数。同样在configuration.yaml 或packages的yaml文件中
 
 #### 设备跟踪器配置
 
