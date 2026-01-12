@@ -20,6 +20,7 @@ from .const import (
     CONF_HOST, 
     ACTION_URL,
     SWITCH_TYPES,
+    CONF_CUSTOM_SWITCHES,
 )
 
 
@@ -37,13 +38,25 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     switchs = []
     switchsmac = []
     
+    # Setup built-in switches
     if SWITCH_TYPES:
-        _LOGGER.debug("setup switchs")
+        _LOGGER.debug("setup built-in switches")
         for switch in SWITCH_TYPES:
-            switchs.append(IKUAISwitch(hass, switch, coordinator, host, username, passwd, pas))
+            switchs.append(IKUAISwitch(hass, switch, coordinator, host, username, passwd, pas, is_custom=False))
             _LOGGER.debug(SWITCH_TYPES[switch]["name"])
+    
+    # Setup custom switches from configuration
+    custom_switches_config = hass.data[DOMAIN].get("custom_switches", {})
+    if custom_switches_config:
+        _LOGGER.debug("setup custom switches")
+        for switch_key, switch_config in custom_switches_config.items():
+            switchs.append(IKUAISwitch(hass, switch_key, coordinator, host, username, passwd, pas, is_custom=True, custom_config=switch_config))
+            _LOGGER.debug(switch_config["name"])
+    
+    if switchs:
         async_add_entities(switchs, False)
     
+    # Setup MAC control switches
     if coordinator.data.get("mac_control"):
         listmacdata = coordinator.data.get("mac_control")
         if isinstance(listmacdata, list):
@@ -57,7 +70,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
 class IKUAISwitch(SwitchEntity):
     _attr_has_entity_name = True
-    def __init__(self, hass, kind, coordinator, host, username, passwd, pas):
+    def __init__(self, hass, kind, coordinator, host, username, passwd, pas, is_custom=False, custom_config=None):
         """Initialize."""
         super().__init__()
         self.kind = kind
@@ -70,7 +83,22 @@ class IKUAISwitch(SwitchEntity):
             "model": "iKuai Router",
             "sw_version": self.coordinator.data["sw_version"],
         }
-        self._attr_icon = SWITCH_TYPES[self.kind]['icon']
+        
+        self.is_custom = is_custom
+        self.custom_config = custom_config
+        
+        # Set properties based on whether it's custom or built-in
+        if is_custom and custom_config:
+            self._attr_icon = custom_config.get('icon', 'mdi:toggle-switch')
+            self._name = custom_config['name']
+            self._turn_on_body = custom_config['turn_on_body']
+            self._turn_off_body = custom_config['turn_off_body']
+        else:
+            self._attr_icon = SWITCH_TYPES[self.kind]['icon']
+            self._name = SWITCH_TYPES[self.kind]['name']
+            self._turn_on_body = SWITCH_TYPES[self.kind]['turn_on_body']
+            self._turn_off_body = SWITCH_TYPES[self.kind]['turn_off_body']
+        
         self._attr_device_class = "switch"
         self._attr_entity_registry_enabled_default = True
         self._hass = hass
@@ -79,9 +107,6 @@ class IKUAISwitch(SwitchEntity):
         self._allow_login = True    
         self._fetcher = DataFetcher(hass, host, username, passwd, pas)
         self._host = host
-        self._name = SWITCH_TYPES[self.kind]['name']
-        self._turn_on_body = SWITCH_TYPES[self.kind]['turn_on_body']
-        self._turn_off_body = SWITCH_TYPES[self.kind]['turn_off_body']
         self._change = True
         self._switchonoff = None
         self._is_on = None
@@ -94,9 +119,7 @@ class IKUAISwitch(SwitchEntity):
         if self._switchonoff:
             self._is_on = self._switchonoff == "on"
             self._state = "on" if self._is_on == True else "off"
-        
 
-        
     async def get_access_token(self):
         if time.time() < self._token_expire_time:
             return self._token

@@ -15,7 +15,6 @@ from homeassistant.components.device_tracker.config_entry import ScannerEntity
 from .const import (
     COORDINATOR, 
     DOMAIN, 
-    DEVICE_TRACKERS, 
     CONF_HOST, 
     ACTION_URL,
 )
@@ -29,11 +28,14 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     """Add bjtoon_health_code entities from a config_entry."""
 
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    
+    # Get device trackers configuration from hass.data
+    device_trackers_config = hass.data[DOMAIN].get("device_trackers", {})
 
     device_trackers = []
-    for device_tracker in DEVICE_TRACKERS:
-        device_trackers.append(IKUAITracker(hass, device_tracker, coordinator))
-        _LOGGER.debug(device_tracker)
+    for device_tracker_key, device_tracker_config in device_trackers_config.items():
+        device_trackers.append(IKUAITracker(hass, device_tracker_key, device_tracker_config, coordinator))
+        _LOGGER.debug("Adding device tracker: %s", device_tracker_key)
     async_add_entities(device_trackers, False)
 
 
@@ -42,10 +44,11 @@ class IKUAITracker(ScannerEntity):
     
     _attr_has_entity_name = True
 
-    def __init__(self, hass, kind, coordinator):
+    def __init__(self, hass, kind, device_config, coordinator):
         """Initialize."""
         super().__init__()
         self.kind = kind
+        self.device_config = device_config
         self.coordinator = coordinator
         self._attr_device_info = {
             "identifiers": {(DOMAIN, self.coordinator.host)},
@@ -64,11 +67,16 @@ class IKUAITracker(ScannerEntity):
     @property
     def name(self):
         """Return the name."""
-        return f"{DEVICE_TRACKERS[self.kind]['name']}"
+        return f"{self.device_config['name']}"
 
     @property
     def unique_id(self):
         return f"{DOMAIN}_{self.kind}_{self.coordinator.host}"
+        
+    @property
+    def icon(self):
+        """Return the icon."""
+        return self.device_config.get("icon", "mdi:cellphone")
         
     @property
     def should_poll(self):
@@ -118,7 +126,7 @@ class IKUAITracker(ScannerEntity):
         if isinstance(listtracker, list):
             for tracker in listtracker:
                 #_LOGGER.debug(tracker)
-                if tracker["mac"] == DEVICE_TRACKERS[self.kind]["mac_address"]:
+                if tracker["mac"] == self.device_config["mac_address"]:
                     _LOGGER.debug(tracker)
                     self._is_connected = True
                     self._attrs = tracker
