@@ -150,7 +150,7 @@ class IKUAISwitch(SwitchEntity):
     @property
     def should_poll(self):
         """Return the polling requirement of the entity."""
-        return False
+        return True
 
     @property
     def is_on(self):
