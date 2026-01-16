@@ -6,26 +6,133 @@
         "error": {
             "cannot_connect": "Failed to connect",
             "invalid_auth": "Invalid authentication",
-            "unknown": "Unexpected error"
+            "invalid_ip_format": "Invalid IP format (e.g., 192.168.1.1)",
+            "invalid_subnet_format": "Invalid subnet format (e.g., 192.168.1.0/24)",
+            "invalid_mac_format": "Invalid MAC format (e.g., AA:BB:CC:DD:EE:FF)",
+            "no_devices_found": "No valid devices found, or empty list in exclude mode",
+            "unknown": "Unexpected error",
+            "login_timeout": "Login timeout, please check network connection",
+            "invalid_buffer": "Value must be at least 1",
+            "interval_too_small": "Update interval must be at least 5 seconds",
+            "expected_int": "Please enter a valid integer"
         },
         "step": {
             "user": {
-                "title":"IKUAI",
+                "title": "Connect to iKuai Router",
                 "data": {
-                    "password": "Password",
+                    "host": "Host URL (e.g., http://192.168.1.1)",
                     "username": "Username",
-					"host": "Host web, such as: http://192.168.1.1"
+                    "password": "Password",
+                    "update_interval_seconds": "Global Update Interval (seconds)",
+                    "default_disconnect_times": "Global Default Buffer (times)",
+                    "source_mode": "Configuration Mode (Const mode requires restart)"
+                }
+            },
+            "menu": {
+                "title": "Select Device Addition Method",
+                "menu_options": {
+                    "scan_add": " Scan & Add (From Online Devices)",
+                    "custom_add": " Custom Add (Manual Input/Subnet)"
+                }
+            },
+            "scan_add": {
+                "title": "Select Online Devices",
+                "description": "Include: Monitor only selected devices.\nExclude: Monitor all online devices except the selected ones.",
+                "data": {
+                    "ip_filter_mode": "IP Filter Mode",
+                    "selected_ips": "Select IP Addresses",
+                    "mac_filter_mode": "MAC Filter Mode",
+                    "selected_macs": "Select MAC Addresses"
+                }
+            },
+            "custom_add": {
+                "title": "Custom Configuration Rules",
+                "description": "Enter IP/MAC or select Subnets. Supports 'Address#Buffer:Name' format to specify buffer and name individually.\nExamples:\n192.168.1.5\n192.168.1.6#8 (buffer 8 times)\n192.168.1.7#0:MyPC (buffer 0 means use global default, name MyPC)\nAA:BB:CC:DD:EE:FF#3:Phone\nSubnet: 192.168.1.0/24#3 (All IPs in subnet, buffer 3 times)",
+                "data": {
+                    "ip_filter_mode": "IP Filter Mode",
+                    "custom_ips": "IP Input (comma or newline separated)",
+                    "subnet_filter_mode": "Subnet Filter Mode (Include only)",
+                    "custom_subnets": "Subnet Input (CIDR format)",
+                    "mac_filter_mode": "MAC Filter Mode",
+                    "custom_macs": "MAC Input (comma or newline separated)"
+                }
+            },
+            "manage_devices": {
+                "title": "Manage Devices (Confirm List)",
+                "description": "Confirm the final device list.\nThe first box is for **Name**, the second for **Disconnect Buffer**.\nLeave buffer empty or set to 0 to use the global default.\nGlobal default buffer: {global_default} times",
+                "data": {
+                    "global_default": "Global Default Buffer Times"
                 }
             }
         }
     },
     "options": {
         "step": {
-            "user":{
-                "data": {                    
-					"update_interval_seconds": "Update_interval(10-3600 seconds)"
-                },
-                "description": "Set Entity Update_interval"
+            "init": {
+                "title": "Select Action",
+                "description": "Currently in UI Mode. Switching to Const mode requires manual integration reload.",
+                "data": {
+                    "update_interval_seconds": "Update Interval (seconds)",
+                    "default_disconnect_times": "Default Buffer (times)",
+                    "source_mode": "Configuration Mode",
+                    "next_step": "Next Action"
+                }
+            },
+            "scan_add": {
+                "title": "Scan & Append Devices",
+                "description": "Select devices to append for monitoring. Include mode adds new devices, Exclude mode removes from current list. Configured devices are auto-filled.\n{loading_hint}",
+                "data": {
+                    "ip_filter_mode": "IP Filter Mode",
+                    "selected_ips": "Select IPs (Search by device name supported)",
+                    "mac_filter_mode": "MAC Filter Mode",
+                    "selected_macs": "Select MACs (Search by device name supported)"
+                }
+            },
+            "custom_add": {
+                "title": "Manually Append Devices",
+                "description": "Newly entered devices will be appended to existing list. Buffer set to 0 means use global default.\nConfigured devices are shown in input boxes and can be edited. Leave all inputs empty and click Next to skip changes.",
+                "data": {
+                    "ip_filter_mode": "IP Filter Mode",
+                    "custom_ips": "IP Input",
+                    "subnet_filter_mode": "Subnet Filter Mode",
+                    "custom_subnets": "Subnet Input",
+                    "mac_filter_mode": "MAC Filter Mode",
+                    "custom_macs": "MAC Input"
+                }
+            },
+            "manage_devices": {
+                "title": "Manage Devices (Modify Parameters)",
+                "description": "Modify name and buffer settings for monitored devices.\nLeave the second box empty or set to 0 to use the global default.\nGlobal default buffer: {global_default} times"
+            },
+            "delete_devices": {
+                "title": "Delete Devices",
+                "description": "{action}",
+                "data": {
+                    "device_list": "Select Devices to Delete"
+                }
+            }
+        }
+    },
+    "selector": {
+        "filter_mode": {
+            "options": {
+                "include": "Include",
+                "exclude": "Exclude"
+            }
+        },
+        "config_mode": {
+            "options": {
+                "ui": "UI Mode",
+                "const": "Const Code Mode"
+            }
+        },
+        "action_steps": {
+            "options": {
+                "scan_add": " Scan & Append Devices",
+                "custom_add": " Manually Append Devices",
+                "manage_devices": " Manage Devices (Modify)",
+                "delete_devices": " Delete Devices",
+                "exit": "Save Global Settings Only & Exit"
             }
         }
     }
