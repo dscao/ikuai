@@ -28,8 +28,6 @@
     * **灵活配置**：支持扫描在线设备选择，或通过文本自定义批量添加。
 
 ### 📸 效果预览
-> *建议在此处放置一张 Home Assistant 仪表盘截图，展示传感器、开关和设备追踪实体。*
->
 > ![iKuai 仪表盘示例](https://user-images.githubusercontent.com/16587914/205011464-061dbef5-992c-435e-b2c6-b308252f2efe.jpg)
 
 ---
@@ -79,17 +77,14 @@
 
 > *建议在此处放置“选择操作”菜单的截图。*
 >
-> ![配置菜单选项]<img width="377" height="633" alt="image" src="https://github.com/user-attachments/assets/8f41f88c-f9ea-41ac-afed-2cc6f9f4aec1" />
+> <img width="377" height="633" alt="image" src="https://github.com/user-attachments/assets/8f41f88c-f9ea-41ac-afed-2cc6f9f4aec1" />
 
 ### 1. 🚀 扫描添加 (Scan Add)
 系统会自动拉取当前在线的所有设备列表。
 * **Include (包含) 模式**: 仅追踪你勾选的设备。
 * **Exclude (排除) 模式**: 追踪 **除了** 你勾选的设备以外的所有设备（即反选）。
     * *注意*：IP 筛选与 MAC 筛选互不影响。例如，你在 IP 选择了排除，仅影响 IP 追踪列表；MAC 列表需单独配置。
-
-> *建议在此处放置“扫描添加”界面的截图，展示 IP/MAC 筛选列表。*
->
-> ![设备扫描界面]<img width="539" height="596" alt="image" src="https://github.com/user-attachments/assets/a25af7eb-a506-4178-b633-a19673df65e9" />
+> <img width="539" height="596" alt="image" src="https://github.com/user-attachments/assets/a25af7eb-a506-4178-b633-a19673df65e9" />
 
 
 ### 2. 📝 自定义添加 (Custom Add)
