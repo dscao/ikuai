@@ -1,127 +1,191 @@
+# Home Assistant Custom Component: iKuai Router (爱快路由器)
+
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![ha-inkwavemap version](https://img.shields.io/badge/ikuai-2026.1.12-blue.svg)](https://github.com/dscao/ikuai)
+[![ha-ikuai version](https://img.shields.io/badge/ikuai-2026.1.16-blue.svg)](https://github.com/dscao/ikuai)
+[![Maintainer](https://img.shields.io/badge/maintainer-dscao-orange)](https://github.com/dscao)
 
-### ha custom_component iKuai
+**iKuai Router** 集成允许将爱快路由器接入 Home Assistant，提供详细的传感器监控、网络控制开关、以及功能强大的设备追踪（Device Tracker）功能。
 
-iKuai router Obtains data generating entities through the Web.
+本集成支持 **UI 图形化配置**（推荐）与 **Const 代码模式**（旧版兼容），并支持极其灵活的设备在线状态追踪策略。
 
-1. Sensor entities such as network information
-2. Restart ikuai and reconnect to the network function
-3. Behavior control—MAC enable and disable switch in the MAC access control list
-4. The device_tracker entity that supports whether the terminal device is online or not, configure the mac address in configuration.yaml.
-5. More customizable switch entities can be configured, just refer to and fill in the corresponding parameters in the packet capture. 
+---
 
-iKuai路由器通过Web获取数据生成实体。
+## ✨ 功能特性
 
-1. 网络信息等传感器实体
-2. 重启ikuai并重新连接网络功能
-3. 行为控制—MAC访问控制列表中的MAC开启禁用开关
-4. 支持终端设备是否在线的device_tracker实体，在configuration.yaml 或packages的yaml文件中配置mac地址等相关资料
-5. 更多自定义的开关实体可配置，只需要参考填写抓包中的对应参数。同样在configuration.yaml 或packages的yaml文件中
+1.  **全面监控**：
+    * **系统信息**：CPU 温度/占用、内存占用、启动时长。
+    * **网络状态**：上传/下载速度、总流量、连接数。
+    * **接口信息**：WAN IP、WAN IPv6、WAN 在线时长。
+    * **终端统计**：在线终端数、AP 在线数。
+2.  **控制功能**：
+    * **重启控制**：重启路由器、重新拨号 WAN 口。
+    * **网络开关**：ARP 绑定限制、流控模式切换、NAS 分流开关。
+    * **上网控制**：基于 MAC 地址的上网控制开关（自动发现）。
+3.  **高级设备追踪 (Device Tracker)**：
+    * 支持 **IP** 和 **MAC** 两种追踪方式。
+    * 支持 **Include (包含)** 和 **Exclude (排除)** 两种筛选模式。
+    * **独立防抖动**：可为每个设备单独设置“掉线缓冲次数”，防止因设备短暂休眠导致的误报（忽在忽离）。
+    * **灵活配置**：支持扫描在线设备选择，或通过文本自定义批量添加。
 
-#### 设备跟踪器配置
+### 📸 效果预览
+![iKuai 仪表盘示例](https://user-images.githubusercontent.com/16587914/205011464-061dbef5-992c-435e-b2c6-b308252f2efe.jpg)
 
-支持通过 configuration.yaml 显式配置设备跟踪器。配置后需要重启 Home Assistant
+---
 
-##### 配置示例
+## 📦 安装方法
 
-在你的 configuration.yaml 中添加：
+### 方式一：HACS (推荐)
+1.  打开 HACS -> **Integrations (集成)**。
+2.  点击右上角菜单（三个点） -> **Custom repositories (自定义存储库)**。
+3.  添加本仓库地址：`https://github.com/dscao/ikuai`，类别选择 `Integration`。
+4.  在 HACS 中搜索 "ikuai" 并下载安装。
+5.  重启 Home Assistant。
 
-```yaml
-ikuai:
-  device_trackers:
-    my_phone:
-      name: "iPhone13"
-      mac_address: "01:02:03:04:05:06"
-      icon: "mdi:cellphone"
-      disconnect_refresh_times: 2
+### 方式二：手动安装
+1.  下载本项目代码。
+2.  将 `custom_components/ikuai` 文件夹放入你的 HA 配置目录 `config/` 下。
+3.  重启 Home Assistant。
+
+---
+
+## ⚙️ 配置指南
+
+集成安装重启后，在 Home Assistant 中点击 **配置** -> **设备与服务** -> **添加集成** -> 搜索 **iKuai**。
+
+### 第一步：初始化连接
+* **Host**: 路由器管理地址 (例如 `http://192.168.1.1`)。
+* **Username**: 登录用户名。
+* **Password**: 登录密码。
+* **全局刷新间隔**: 默认为 10 秒。
+* **全局默认掉线缓冲**: 默认为 2 次（即设备连续 2 次检测不到才判定为离线）。
+* **配置模式**:
+    * `UI 界面模式 (推荐)`：所有配置在 HA 界面完成，即时生效。
+    * `Const 代码模式`：读取 `const.py` 文件中的配置（适合高级用户，需重启生效）。
+<img width="363" height="626" alt="image" src="https://github.com/user-attachments/assets/c42aff64-81f5-4671-9c05-c57d28043555" />
+
+---
+
+## 🖥️ UI 模式配置详解 (推荐)
+
+在初始化完成后，你可以点击集成卡片上的 **“选项 (CONFIGURE)”** 按钮进入主菜单，随时管理设备。
+
+### 菜单功能概览
+* **🚀 扫描并追加设备**: 从当前路由器在线列表中勾选设备。
+* **📝 手动并追加设备**: 通过文本或网段规则添加设备。
+* **⚙️ 管理设备 (修改参数)**: 修改已添加设备的名称和缓冲次数。
+* **🗑️ 删除设备**: 移除不再追踪的设备。
+* **全局设置**: 修改刷新间隔、全局默认缓冲、切换配置模式。
+<img width="372" height="700" alt="image" src="https://github.com/user-attachments/assets/c720385c-dc44-4d25-8d35-c96cdddb2021" />
+
+
+### 1. 🚀 扫描添加 (Scan Add)
+系统会自动拉取当前在线的所有设备列表。
+* **Include (包含) 模式**: 仅追踪你勾选的设备。
+* **Exclude (排除) 模式**: 追踪 **除了** 你勾选的设备以外的所有设备（即反选）。
+    * *注意*：IP 筛选与 MAC 筛选互不影响。例如，你在 IP 选择了排除，仅影响 IP 追踪列表；MAC 列表需单独配置。
+<img width="539" height="596" alt="image" src="https://github.com/user-attachments/assets/a25af7eb-a506-4178-b633-a19673df65e9" />
+
+
+### 2. 📝 自定义添加 (Custom Add)
+支持通过特定语法快速批量添加设备，支持网段。
+
+**语法格式说明：**
+* **基本格式**: `地址` (使用全局默认缓冲)
+* **指定缓冲**: `地址#次数`
+* **指定名称**: `地址:名称`
+* **全功能**: `地址#次数:名称`
+
+> **关于缓冲次数 (Buffer)**：
+> * 设置为 `0`：表示跟随**全局默认缓冲**设置。
+> * 设置为 `>0`：表示该设备使用独立的缓冲次数。
+
+**示例：**
+```text
+# IP 输入示例
+192.168.1.5                      (仅IP，使用全局缓冲)
+192.168.1.6#5                    (缓冲5次)
+192.168.1.8#0:MyPC               (缓冲0即跟随全局，命名为MyPC)
+192.168.1.100#10:Server          (缓冲10次，命名为Server)
+
+# 网段输入示例 (仅支持 Include)
+192.168.2.0/24#3                 (该网段所有IP均追踪，缓冲3次)
+
+# MAC 输入示例
+AA:BB:CC:DD:EE:FF
+AA:BB:CC:DD:EE:01#5:MyPhone
+
+```
+<img width="494" height="847" alt="image" src="https://github.com/user-attachments/assets/b60ffbdd-3e05-4a18-98e6-113bf26d6563" />
+
+
+### 3. ⚙️ 管理设备
+
+在此页面，你可以看到所有已配置的设备。
+
+* **第一个输入框**：修改设备在 HA 中的 `name` (实体 ID 会随之改变)。
+* **第二个输入框**：修改缓冲次数。
+* 留空 或 填 `0`：代表使用**全局默认缓冲**。
+* 填入具体数字：代表使用独立缓冲。
+
+---
+
+## 🛠️ Const 代码模式 (高级用户)
+
+如果你习惯通过代码管理配置，可以在初始化时选择 **Const 代码模式**。
+你需要手动编辑 `custom_components/ikuai/const.py` 文件中的 `DEVICE_TRACKERS` 字典。
+
+**注意**：修改 `const.py` 后必须**重启 Home Assistant** 才能生效。
+
+```python
+# custom_components/ikuai/const.py 示例
+
+DEVICE_TRACKERS = {
+    "redmi_k50": {
+        "name": "iPhone13_dscao",
+        "mac_address": "64:6d:2f:xx:xx:xx",
+        "disconnect_refresh_times": 3  # 掉线缓冲次数
+    },
+    "pc_lan": {
+        "name": "Desktop PC",
+        "ip_address": "192.168.1.200",
+        "disconnect_refresh_times": 2
+    },
+}
+
 ```
 
-##### 参数说明
+---
 
-- **设备ID** (如 `my_phone`): 唯一标识符，用于内部识别
-- **name**: Home Assistant 中显示的实体名称（必需）
-- **mac_address**: 设备MAC地址（必需）
-- **icon**: 图标，默认为 `mdi:cellphone`（可选）
-- **disconnect_refresh_times**: 断线刷新次数，默认为 2（可选）
-- **label**: 设备标签，仅用于用户参考（可选）
+## ❓ 常见问题 (FAQ)
 
-#### iKuai 自定义开关配置
+**Q: 什么是“掉线缓冲 (Disconnect Buffer)”？**
+A: 手机等无线设备在锁屏后可能会间歇性断开 WiFi 以省电。如果不设置缓冲，HA 中的状态会频繁在“在家”和“离家”之间跳变。
 
-iKuai 集成现在支持通过 `configuration.yaml` 配置自定义开关。
+* 默认缓冲为 2 次。假设刷新间隔 10 秒，设备需要连续 20 秒（2次检测）都离线，才会被判定为 `not_home`。
+* 对于常驻供电的设备（如台式机），可以将缓冲设为 1-2 以提高灵敏度。
+* 对于休眠频繁的手机，建议设置 3-5 次。
 
-##### 配置方法
+**Q: Exclude (排除) 模式是如何工作的？**
+A:
 
-在您的 `configuration.yaml` 文件中添加以下配置：
+* **IP 排除**: 追踪所有在线 IP，**除了** 你在列表中指定的 IP。
+* **MAC 排除**: 追踪所有在线 MAC，**除了** 你在列表中指定的 MAC。
+* 两者逻辑独立运行，互不干扰。
 
-```yaml
-ikuai:
-  custom_switches:
-    # 自定义开关示例 - NAS 分流
-    nas_flow_to_world:
-      label: "NAS分流"
-      name: "Nas_flow_to_world"
-      icon: "mdi:nas"
-      turn_on_body:
-        func_name: "stream_ipport"
-        action: "up"
-        param:
-          id: 5
-      turn_off_body:
-        func_name: "stream_ipport"
-        action: "down"
-        param:
-          id: 5
-      show_body:
-        func_name: "stream_ipport"
-        action: "show"
-        param:
-          TYPE: "data"
-          limit: "0,20"
-          ORDER_BY: ""
-          ORDER: ""
-          FINDS: "comment"
-          KEYWORDS: "nasflow"
-      show_on:
-        enabled: "yes"
-      show_off:
-        enabled: "no"
-    
-    # 另一个自定义开关示例
-    custom_rule_example:
-      label: "自定义规则示例"
-      name: "Custom_rule"
-      icon: "mdi:toggle-switch"
-      turn_on_body:
-        func_name: "your_function"
-        action: "enable"
-        param:
-          setting: 1
-      turn_off_body:
-        func_name: "your_function"
-        action: "disable"
-        param:
-          setting: 0
-```
+**Q: 我修改了 Const 文件，为什么没生效？**
+A: Const 模式是硬编码模式，修改 python 文件后，必须**重启 Home Assistant** 才能重新加载配置。如果希望即时修改，请在集成选项中切换回 **UI 模式**。
 
-## 配置参数说明
+**Q: 实体显示不可用 (Unavailable)？**
+A:
 
-### 必需参数
+1. 检查路由器是否在线。
+2. 检查配置中的用户名密码是否正确。
+3. 如果日志提示 `Result: 10001`，说明登录失败。
+4. 如果是 Device Tracker 实体，本集成优化了逻辑：即使路由器短暂断连，Tracker 也会显示为“离家”而不是“不可用”，除非集成彻底卸载。
 
-- `label`: 开关在 Home Assistant 中显示的友好名称
-- `name`: 开关的内部名称（用于与 iKuai API 通信）
-- `turn_on_body`: 打开开关时发送给 iKuai API 的请求体
-- `turn_off_body`: 关闭开关时发送给 iKuai API 的请求体
+---
 
-### 可选参数
+## 许可证
 
-- `icon`: 开关的图标（默认: `mdi:toggle-switch`）
-- `show_body`: 查询开关状态时发送的请求体
-- `show_on`: 判断开关为"开启"状态的条件
-- `show_off`: 判断开关为"关闭"状态的条件
+Apache License 2.0
 
-![1](https://user-images.githubusercontent.com/16587914/202218050-66b21a3d-60c8-4081-bfd0-406fcec1a019.jpg)
-
-![2](https://user-images.githubusercontent.com/16587914/202218076-b0189994-d7de-491c-8a19-dbe0defeafe9.jpg)
-
-![3](https://user-images.githubusercontent.com/16587914/205011464-061dbef5-992c-435e-b2c6-b308252f2efe.jpg)
