@@ -1,4 +1,3 @@
-<img width="377" height="633" alt="image" src="https://github.com/user-attachments/assets/fbabe24e-28d7-49c1-a0fa-6fec9fbb4478" />
 # Home Assistant Custom Component: iKuai Router (爱快路由器)
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
@@ -80,7 +79,7 @@
 
 > *建议在此处放置“选择操作”菜单的截图。*
 >
-> ![配置菜单选项](<img width="377" height="633" alt="image" src="https://github.com/user-attachments/assets/8f41f88c-f9ea-41ac-afed-2cc6f9f4aec1" />)
+> ![配置菜单选项]<img width="377" height="633" alt="image" src="https://github.com/user-attachments/assets/8f41f88c-f9ea-41ac-afed-2cc6f9f4aec1" />
 
 ### 1. 🚀 扫描添加 (Scan Add)
 系统会自动拉取当前在线的所有设备列表。
@@ -90,7 +89,7 @@
 
 > *建议在此处放置“扫描添加”界面的截图，展示 IP/MAC 筛选列表。*
 >
-> ![设备扫描界面](<img width="539" height="596" alt="image" src="https://github.com/user-attachments/assets/a25af7eb-a506-4178-b633-a19673df65e9" />)
+> ![设备扫描界面]<img width="539" height="596" alt="image" src="https://github.com/user-attachments/assets/a25af7eb-a506-4178-b633-a19673df65e9" />
 
 
 ### 2. 📝 自定义添加 (Custom Add)
