@@ -12,6 +12,11 @@ COORDINATOR = "coordinator"
 CONF_UPDATE_INTERVAL = "update_interval_seconds"
 CONF_DEVICE_TRACKERS = "device_trackers"
 CONF_CUSTOM_SWITCHES = "custom_switches"
+CONF_ACT_BUFFER = "act_buffer"
+CONF_TRACKER_CONFIG = "tracker_config"
+CONF_SOURCE_MODE = "source_mode"
+MODE_UI = "mode_ui"
+MODE_CONST = "mode_const"
 
 UNDO_UPDATE_LISTENER = "undo_update_listener"
 
