@@ -1,4 +1,4 @@
-
+<img width="377" height="633" alt="image" src="https://github.com/user-attachments/assets/fbabe24e-28d7-49c1-a0fa-6fec9fbb4478" />
 # Home Assistant Custom Component: iKuai Router (爱快路由器)
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
@@ -31,7 +31,7 @@
 ### 📸 效果预览
 > *建议在此处放置一张 Home Assistant 仪表盘截图，展示传感器、开关和设备追踪实体。*
 >
-> ![iKuai 仪表盘示例](docs/dashboard_preview.png)
+> ![iKuai 仪表盘示例](https://user-images.githubusercontent.com/16587914/205011464-061dbef5-992c-435e-b2c6-b308252f2efe.jpg)
 
 ---
 
@@ -46,7 +46,7 @@
 
 ### 方式二：手动安装
 1.  下载本项目代码。
-2.  将 `custom_components/ikuai` 文件夹放入你的 HA 配置目录 `config/custom_components/` 下。
+2.  将 `custom_components/ikuai` 文件夹放入你的 HA 配置目录 `config/` 下。
 3.  重启 Home Assistant。
 
 ---
@@ -80,7 +80,7 @@
 
 > *建议在此处放置“选择操作”菜单的截图。*
 >
-> ![配置菜单选项](docs/config_menu.png)
+> ![配置菜单选项](<img width="377" height="633" alt="image" src="https://github.com/user-attachments/assets/8f41f88c-f9ea-41ac-afed-2cc6f9f4aec1" />)
 
 ### 1. 🚀 扫描添加 (Scan Add)
 系统会自动拉取当前在线的所有设备列表。
@@ -90,7 +90,8 @@
 
 > *建议在此处放置“扫描添加”界面的截图，展示 IP/MAC 筛选列表。*
 >
-> ![设备扫描界面](docs/scan_devices.png)
+> ![设备扫描界面](<img width="539" height="596" alt="image" src="https://github.com/user-attachments/assets/a25af7eb-a506-4178-b633-a19673df65e9" />)
+
 
 ### 2. 📝 自定义添加 (Custom Add)
 支持通过特定语法快速批量添加设备，支持网段。
