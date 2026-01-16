@@ -28,7 +28,7 @@
     * **灵活配置**：支持扫描在线设备选择，或通过文本自定义批量添加。
 
 ### 📸 效果预览
-> <img width="378" height="707" alt="image" src="https://github.com/user-attachments/assets/5062cc74-0722-4ada-87f3-516314bb0c86" />
+![iKuai 仪表盘示例](https://user-images.githubusercontent.com/16587914/205011464-061dbef5-992c-435e-b2c6-b308252f2efe.jpg)
 
 ---
 
@@ -61,6 +61,7 @@
 * **配置模式**:
     * `UI 界面模式 (推荐)`：所有配置在 HA 界面完成，即时生效。
     * `Const 代码模式`：读取 `const.py` 文件中的配置（适合高级用户，需重启生效）。
+<img width="363" height="626" alt="image" src="https://github.com/user-attachments/assets/c42aff64-81f5-4671-9c05-c57d28043555" />
 
 ---
 
@@ -74,14 +75,15 @@
 * **⚙️ 管理设备 (修改参数)**: 修改已添加设备的名称和缓冲次数。
 * **🗑️ 删除设备**: 移除不再追踪的设备。
 * **全局设置**: 修改刷新间隔、全局默认缓冲、切换配置模式。
-> <img width="377" height="633" alt="image" src="https://github.com/user-attachments/assets/8f41f88c-f9ea-41ac-afed-2cc6f9f4aec1" />
+<img width="372" height="700" alt="image" src="https://github.com/user-attachments/assets/c720385c-dc44-4d25-8d35-c96cdddb2021" />
+
 
 ### 1. 🚀 扫描添加 (Scan Add)
 系统会自动拉取当前在线的所有设备列表。
 * **Include (包含) 模式**: 仅追踪你勾选的设备。
 * **Exclude (排除) 模式**: 追踪 **除了** 你勾选的设备以外的所有设备（即反选）。
     * *注意*：IP 筛选与 MAC 筛选互不影响。例如，你在 IP 选择了排除，仅影响 IP 追踪列表；MAC 列表需单独配置。
-> <img width="539" height="596" alt="image" src="https://github.com/user-attachments/assets/a25af7eb-a506-4178-b633-a19673df65e9" />
+<img width="539" height="596" alt="image" src="https://github.com/user-attachments/assets/a25af7eb-a506-4178-b633-a19673df65e9" />
 
 
 ### 2. 📝 自定义添加 (Custom Add)
@@ -113,6 +115,8 @@ AA:BB:CC:DD:EE:FF
 AA:BB:CC:DD:EE:01#5:MyPhone
 
 ```
+<img width="494" height="847" alt="image" src="https://github.com/user-attachments/assets/b60ffbdd-3e05-4a18-98e6-113bf26d6563" />
+
 
 ### 3. ⚙️ 管理设备
 
@@ -122,8 +126,6 @@ AA:BB:CC:DD:EE:01#5:MyPhone
 * **第二个输入框**：修改缓冲次数。
 * 留空 或 填 `0`：代表使用**全局默认缓冲**。
 * 填入具体数字：代表使用独立缓冲。
-
-
 
 ---
 
