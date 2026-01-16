@@ -3,17 +3,14 @@ get ikuai info by token and sess_key
 """
 
 import logging
-import requests
-import re
-import asyncio
 import json
 import time
 import datetime
+import asyncio
 from async_timeout import timeout
 from aiohttp.client_exceptions import ClientConnectorError
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
-from urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
 from .const import (
     LOGIN_URL,
     ACTION_URL,
@@ -22,79 +19,72 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-
-
 class DataFetcher:
-    """fetch the ikuai data"""
+    """Class to fetch data from iKuai router."""
 
-    def __init__(self, hass, host, username, passwd, pas, device_trackers_config=None, custom_switches_config=None):
-
+    def __init__(self, hass, host, username, passwd, pas, tracker_config):
+        """Initialize the data fetcher."""
         self._host = host
         self._username = username
         self._passwd = passwd
         self._pass = pas
         self._hass = hass
-        self._session_client = async_create_clientsession(hass)
-        self._data = {}
-        self._datatracker = {}
+        self._session_client = async_get_clientsession(hass, verify_ssl=False)
+        self._datatracker = {} 
         self._datarefreshtimes = {}
-        self._device_trackers_config = device_trackers_config or {}
-        self._custom_switches_config = custom_switches_config or {}
+        self._tracker_config = tracker_config if tracker_config else {}
+        
+        self._semaphore = asyncio.Semaphore(3)
     
     def is_json(self, jsonstr):
+        """Check if a string is valid JSON."""
         try:
             json.loads(jsonstr)
         except ValueError:
             return False
         return True
-    
-    def requestget_data(self, url, headerstr):
-        responsedata = requests.get(url, headers=headerstr)
-        if responsedata.status_code != 200:
-            return responsedata.status_code
-        json_text = responsedata.content.decode('utf-8')
-        if self.is_json(json_text):
-            resdata = json.loads(json_text)
-        else:
-            resdata = json_text
-        return resdata
         
-    def requestpost_data(self, url, headerstr, datastr):
-        responsedata = requests.post(url, headers=headerstr, data = datastr, verify=False)
-        if responsedata.status_code != 200:
-            return responsedata.status_code
-        json_text = responsedata.content.decode('utf-8')
-        if self.is_json(json_text):
-            resdata = json.loads(json_text)
-        else:
-            resdata = json_text
-        return resdata
-        
-    def requestpost_json(self, url, headerstr, json_body):
-        responsedata = requests.post(url, headers=headerstr, json = json_body, verify=False)
-        _LOGGER.debug(responsedata)
-        if responsedata.status_code != 200:
-            return responsedata.status_code
-        json_text = responsedata.content.decode('utf-8')
-        if self.is_json(json_text):
-            resdata = json.loads(json_text)
-        else:
-            resdata = json_text
-        return resdata
+    async def requestpost_json(self, url, headerstr, json_body):
+        """Send an asynchronous POST request and return JSON data."""
+        async with self._semaphore:
+            try:
+                async with timeout(10):
+                    async with self._session_client.post(url, headers=headerstr, json=json_body) as response:
+                        if response.status != 200:
+                            return None
+                        text = await response.text()
+                        if self.is_json(text):
+                            return json.loads(text)
+                        return text
+            except (ClientConnectorError, asyncio.TimeoutError) as e:
+                _LOGGER.warning("Network error visiting iKuai: %s", e)
+                return None
+            except Exception as e:
+                _LOGGER.error("Unexpected error in requestpost_json: %s", e)
+                return None
 
-    def requestpost_cookies(self, url, headerstr, json_body):
-        responsedata = requests.post(url, headers=headerstr, json = json_body, verify=False)
-        if responsedata.status_code != 200:
-            return responsedata.status_code
-        resdata = responsedata.cookies["sess_key"]
-        return resdata         
-        
+    async def requestpost_cookies(self, url, headerstr, json_body):
+        """Send a POST request and extract the sess_key from cookies."""
+        async with self._semaphore:
+            try:
+                async with timeout(10):
+                    async with self._session_client.post(url, headers=headerstr, json=json_body) as response:
+                        if response.status != 200:
+                            return None
+                        for cookie in response.cookies:
+                            if cookie == "sess_key":
+                                return response.cookies["sess_key"].value
+                        return None
+            except Exception as e:
+                _LOGGER.error("Error in requestpost_cookies: %s", e)
+                return None
+
     async def _login_ikuai(self):
-        hass = self._hass
+        """Perform login to iKuai and return the session key."""
         host = self._host
-        username =self._username
-        passwd =self._passwd
-        pas =self._pass
+        username = self._username
+        passwd = self._passwd
+        pas = self._pass
         header = {
             "Content-Type": "application/json;charset=UTF-8"
         }
@@ -104,27 +94,23 @@ class DataFetcher:
             "passwd": passwd,
             "pass": pas
         }  
-        url =  host + LOGIN_URL
+        url = host + LOGIN_URL
         
-        _LOGGER.debug("Requests remaining: %s", url)   
         try:
-            async with timeout(10): 
-                resdata = await self._hass.async_add_executor_job(self.requestpost_cookies, url, header, json_body) 
-                _LOGGER.debug(resdata)
-                if isinstance(resdata, list):
-                    _LOGGER.debug("iKuai Username or Password is wrong，please reconfig!")   
-                    return resdata.get("Result")
-                else:
-                    _LOGGER.debug("login_successfully for IKUAI")                
-        except (
-            ClientConnectorError
-        ) as error:
-            raise UpdateFailed(error)              
-       
-        return resdata
+            resdata = await self.requestpost_cookies(url, header, json_body) 
+            if isinstance(resdata, list):
+                return resdata.get("Result") 
+            elif isinstance(resdata, int):
+                return resdata
+            elif resdata:
+                return resdata
+            else:
+                return None
+        except Exception:
+            return None
         
-    
     def seconds_to_dhms(self, seconds):
+        """Convert seconds to a readable Day-Hour-Minute-Second format."""
         days = seconds // (3600 * 24)
         hours = (seconds // 3600) % 24
         minutes = (seconds // 60) % 60
@@ -136,392 +122,331 @@ class DataFetcher:
         if minutes > 0 :
             return ("{0}分钟{1}秒".format(minutes,seconds))
         return ("{0}秒".format(seconds)) 
-        
 
-    async def _get_ikuai_status(self, sess_key):
+    async def _get_ikuai_status(self, sess_key, data_dict):
+        """Fetch general system status and AC information."""
         header = {
-            'Cookie': 'Cookie: username=admin; login=1; sess_key='+sess_key,
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cookie': 'Cookie: username='+self._username+'; login=1; sess_key='+sess_key,
             'Content-Type': 'application/json;charset=UTF-8',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.40 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         }
         
         json_body = {"func_name":"homepage","action":"show","param":{"TYPE":"sysstat,ac_status"}}
-        
+        url = self._host + ACTION_URL
 
-        url =  self._host + ACTION_URL
-        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
-        try:
-            async with timeout(10): 
-                resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
-        except (
-            ClientConnectorError
-        ) as error:
-            raise UpdateFailed(error)        
-        _LOGGER.debug(resdata)
-        if resdata == 401:
-            self._data = 401
-            return
-        if resdata["Result"] == 10014:
-            self._data = 401
-            return
+        resdata = await self.requestpost_json(url, header, json_body)
+        
+        if resdata is None: return
+        if isinstance(resdata, int) and resdata == 401: return 401
+        if isinstance(resdata, dict) and resdata.get("Result") == 10014: return 401
             
-        self._data = {}
-        self._data["ikuai_wan_ip"] = "未检测到默认网关线路"
+        data_dict["ikuai_wan_ip"] = "未检测到默认网关线路"
 
-        self._data["sw_version"] = resdata["Data"]["sysstat"]["verinfo"]["verstring"]
-        self._data["device_name"] = resdata["Data"]["sysstat"]["hostname"]
-        
-        
-        if resdata["Data"]["sysstat"].get("cputemp"):
-            self._data["ikuai_cputemp"] = resdata["Data"]["sysstat"]["cputemp"][0]
-        else:
-            self._data["ikuai_cputemp"] = ""
+        data_block = resdata.get("Data", {}) if isinstance(resdata, dict) else {}
+        sysstat = data_block.get("sysstat", {})
+        ac_status = data_block.get("ac_status", {})
+
+        if sysstat:
+            data_dict["sw_version"] = sysstat.get("verinfo", {}).get("verstring", "")
+            data_dict["device_name"] = sysstat.get("hostname", "")
             
-        if resdata["Data"]["sysstat"].get("cpu"):
-            self._data["ikuai_cpu"] = resdata["Data"]["sysstat"]["cpu"][0].replace("%","")
-        else:
-            self._data["ikuai_cpu"] = ""
+            cputemp_list = sysstat.get("cputemp", [])
+            data_dict["ikuai_cputemp"] = cputemp_list[0] if cputemp_list else ""
+                
+            cpu_list = sysstat.get("cpu", [])
+            data_dict["ikuai_cpu"] = cpu_list[0].replace("%","") if cpu_list else ""
+                
+            memory = sysstat.get("memory", {})
+            if memory:
+                data_dict["ikuai_memory"] = memory.get("used", "").replace("%","")
+                data_dict["ikuai_memory_attrs"] = memory
+            else:
+                data_dict["ikuai_memory"] = ""
+                data_dict["ikuai_memory_attrs"] = ""
             
-        if resdata["Data"]["sysstat"].get("memory"):
-            self._data["ikuai_memory"] = resdata["Data"]["sysstat"]["memory"]["used"].replace("%","")
-            self._data["ikuai_memory_attrs"] = resdata["Data"]["sysstat"]["memory"]
-        else:
-            self._data["ikuai_memory"] = ""
-            self._data["ikuai_memory_attrs"] = ""
-        
-        self._data["ikuai_uptime"] = self.seconds_to_dhms(resdata["Data"]["sysstat"]["uptime"])      
-        self._data["ikuai_online_user"] = resdata["Data"]["sysstat"]["online_user"]["count"]
-        self._data["ikuai_online_user_attrs"] = resdata["Data"]["sysstat"]["online_user"]
-        self._data["ikuai_connect_num"] = int(resdata["Data"]["sysstat"]["stream"]["connect_num"])
-        self._data["ikuai_upload"] = round(resdata["Data"]["sysstat"]["stream"]["upload"]/1024/1024, 3)
-        self._data["ikuai_download"] = round(resdata["Data"]["sysstat"]["stream"]["download"]/1024/1024, 3)
-        self._data["ikuai_total_up"] = round(resdata["Data"]["sysstat"]["stream"]["total_up"]/1024/1024/1024, 2)
-        self._data["ikuai_total_down"] = round(resdata["Data"]["sysstat"]["stream"]["total_down"]/1024/1024/1024, 2)
-        self._data["ikuai_ap_online"] = resdata["Data"]["ac_status"]["ap_online"]
-        self._data["ikuai_ap_online_attrs"] = resdata["Data"]["ac_status"]
-        
-        querytime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self._data["querytime"] = querytime
-        
+            data_dict["ikuai_uptime"] = self.seconds_to_dhms(sysstat.get("uptime", 0))      
+            
+            online_user = sysstat.get("online_user", {})
+            data_dict["ikuai_online_user"] = online_user.get("count", 0)
+            data_dict["ikuai_online_user_attrs"] = online_user
+            
+            stream = sysstat.get("stream", {})
+            data_dict["ikuai_connect_num"] = int(stream.get("connect_num", 0))
+            data_dict["ikuai_upload"] = round(stream.get("upload", 0)/1024/1024, 3)
+            data_dict["ikuai_download"] = round(stream.get("download", 0)/1024/1024, 3)
+            data_dict["ikuai_total_up"] = round(stream.get("total_up", 0)/1024/1024/1024, 2)
+            data_dict["ikuai_total_down"] = round(stream.get("total_down", 0)/1024/1024/1024, 2)
+            
+            data_dict["ikuai_ap_online"] = ac_status.get("ap_online", 0)
+            data_dict["ikuai_ap_online_attrs"] = ac_status
+            
+            querytime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            data_dict["querytime"] = querytime
         return
 
-    async def _get_ikuai_waninfo(self, sess_key):
+    async def _get_ikuai_waninfo(self, sess_key, data_dict):
+        """Fetch WAN interface information and handle VLAN routes."""
         header = {
-            'Cookie': 'Cookie: username=admin; login=1; sess_key='+sess_key,
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cookie': 'Cookie: username='+self._username+'; login=1; sess_key='+sess_key,
             'Content-Type': 'application/json;charset=UTF-8',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.40 Safari/537.36',
         }
-        
         json_body = {"func_name":"lan","action":"show","param":{"TYPE":"ether_info,snapshoot"}}
-        
+        url = self._host + ACTION_URL
 
-        url =  self._host + ACTION_URL
-        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
-        try:
-            async with timeout(10): 
-                resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
-        except (
-            ClientConnectorError
-        ) as error:
-            raise UpdateFailed(error)        
-        _LOGGER.debug(resdata)
-        if resdata == 401:
-            self._data = 401
-            return
-        if resdata["Result"] == 10014:
-            self._data = 401
-            return            
+        resdata = await self.requestpost_json(url, header, json_body)
 
-        if resdata["Data"].get("snapshoot_wan") and isinstance(resdata["Data"].get("snapshoot_wan"), list):
-            for snapshoot_wan in resdata["Data"]["snapshoot_wan"]:
-                if snapshoot_wan.get("default_route") == 1:
-                    self._data["ikuai_wan_ip"] = snapshoot_wan["ip_addr"]
-                    self._data["ikuai_wan_ip_attrs"] = snapshoot_wan
-                    if snapshoot_wan["updatetime"] == 0:
-                        self._data["ikuai_wan_uptime"] = ""
+        if resdata is None: return
+        if isinstance(resdata, int) and resdata == 401: return 401
+        if isinstance(resdata, dict) and resdata.get("Result") == 10014: return 401            
+
+        data_block = resdata.get("Data", {}) if isinstance(resdata, dict) else {}
+        snapshoot_wan = data_block.get("snapshoot_wan")
+
+        if snapshoot_wan and isinstance(snapshoot_wan, list):
+            for item in snapshoot_wan:
+                if item.get("default_route") == 1:
+                    data_dict["ikuai_wan_ip"] = item.get("ip_addr", "")
+                    data_dict["ikuai_wan_ip_attrs"] = item
+                    if item.get("updatetime", 0) == 0:
+                        data_dict["ikuai_wan_uptime"] = ""
                     else:
-                        self._data["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - snapshoot_wan["updatetime"])) 
+                        data_dict["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - item["updatetime"])) 
 
-                elif snapshoot_wan["internet"] == 3 or snapshoot_wan["internet"] == 4:
-                    tasks = [            
-                    asyncio.create_task(self._get_ikuai_showvlan(sess_key, snapshoot_wan["interface"])),
-                    ]
-                    await asyncio.gather(*tasks)
-                
-                
-        
+                elif item.get("internet") in [3, 4]:
+                    await self._get_ikuai_showvlan(sess_key, item.get("interface"), data_dict)
         return
         
-    async def _get_ikuai_showvlan(self, sess_key, interface):
+    async def _get_ikuai_showvlan(self, sess_key, interface, data_dict):
+        """Fetch VLAN specific WAN information."""
         header = {
-            'Cookie': 'Cookie: username=admin; login=1; sess_key='+sess_key,
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cookie': 'Cookie: username='+self._username+'; login=1; sess_key='+sess_key,
             'Content-Type': 'application/json;charset=UTF-8',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.40 Safari/537.36',
         }
-        
         json_body = {"func_name":"wan","action":"show","param":{"TYPE":"vlan_data,vlan_total","ORDER_BY":"vlan_name","ORDER":"asc","vlan_internet":2,"interface":interface,"limit":"0,20"}}
-        
+        url = self._host + ACTION_URL
 
-        url =  self._host + ACTION_URL
-        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
-        try:
-            async with timeout(10): 
-                resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
-        except (
-            ClientConnectorError
-        ) as error:
-            raise UpdateFailed(error)        
-        _LOGGER.debug(resdata)
-        if resdata == 401:
-            self._data = 401
-            return
-        if resdata["Result"] == 10014:
-            self._data = 401
-            return            
+        resdata = await self.requestpost_json(url, header, json_body)
 
-        if resdata["Data"].get("vlan_data"):
-            vlan_datas = resdata["Data"]["vlan_data"]
+        if resdata is None: return
+        if isinstance(resdata, int) and resdata == 401: return 401
+        if isinstance(resdata, dict) and resdata.get("Result") == 10014: return 401            
+
+        data_block = resdata.get("Data", {}) if isinstance(resdata, dict) else {}
+        vlan_datas = data_block.get("vlan_data")
+
+        if isinstance(vlan_datas, list):
             for vlan_data in vlan_datas:
-                if vlan_data["pppoe_updatetime"] != 0 and vlan_data["default_route"] == 1:
-                    self._data["ikuai_wan_ip"] = vlan_data["pppoe_ip_addr"]
-                    self._data["ikuai_wan_ip_attrs"] = vlan_data
-                    self._data["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - vlan_data["pppoe_updatetime"])) 
+                if vlan_data.get("pppoe_updatetime", 0) != 0 and vlan_data.get("default_route") == 1:
+                    data_dict["ikuai_wan_ip"] = vlan_data.get("pppoe_ip_addr", "")
+                    data_dict["ikuai_wan_ip_attrs"] = vlan_data
+                    data_dict["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - vlan_data["pppoe_updatetime"])) 
                     return
         else:
-            self._data["ikuai_wan_ip"] = ""
-            self._data["ikuai_wan_uptime"] = ""
-        
+            data_dict["ikuai_wan_ip"] = ""
+            data_dict["ikuai_wan_uptime"] = ""
         return
         
-    async def _get_ikuai_wan6info(self, sess_key):
+    async def _get_ikuai_wan6info(self, sess_key, data_dict):
+        """Fetch IPv6 interface information."""
         header = {
-            'Cookie': 'Cookie: username=admin; login=1; sess_key='+sess_key,
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cookie': 'Cookie: username='+self._username+'; login=1; sess_key='+sess_key,
             'Content-Type': 'application/json;charset=UTF-8',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.40 Safari/537.36',
         }
-        
         json_body = {"func_name":"ipv6","action":"show","param":{"TYPE":"lan_data,lan_total","limit":"0,20","ORDER_BY":"","ORDER":""}}
-        
+        url = self._host + ACTION_URL
 
-        url =  self._host + ACTION_URL
-        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
-        try:
-            async with timeout(10): 
-                resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
-        except (
-            ClientConnectorError
-        ) as error:
-            raise UpdateFailed(error)        
-        _LOGGER.debug(resdata)
-        if resdata == 401:
-            self._data = 401
-            return
-        if resdata["Result"] == 10014:
-            self._data = 401
-            return            
-        if resdata["Data"].get("lan_data"):
-            self._data["ikuai_wan6_ip"] = resdata["Data"]["lan_data"][0]["ipv6_addr"]
-            self._data["ikuai_wan6_ip_attrs"] = resdata["Data"]["lan_data"][0]
+        resdata = await self.requestpost_json(url, header, json_body)
+
+        if resdata is None: return
+        if isinstance(resdata, int) and resdata == 401: return 401
+        if isinstance(resdata, dict) and resdata.get("Result") == 10014: return 401            
+        
+        data_block = resdata.get("Data", {}) if isinstance(resdata, dict) else {}
+        lan_data = data_block.get("lan_data")
+
+        if isinstance(lan_data, list) and len(lan_data) > 0:
+            data_dict["ikuai_wan6_ip"] = lan_data[0].get("ipv6_addr", "")
+            data_dict["ikuai_wan6_ip_attrs"] = lan_data[0]
         else:
-            self._data["ikuai_wan6_ip"] = ""       
+            data_dict["ikuai_wan6_ip"] = ""       
         return
         
-    async def _get_ikuai_mac_control(self, sess_key):
+    async def _get_ikuai_mac_control(self, sess_key, data_dict):
+        """Fetch MAC access control list."""
         header = {
-            'Cookie': 'Cookie: username=admin; login=1; sess_key='+sess_key,
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cookie': 'Cookie: username='+self._username+'; login=1; sess_key='+sess_key,
             'Content-Type': 'application/json;charset=UTF-8',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.40 Safari/537.36',
         }
-        
         json_body = {"func_name":"acl_mac","action":"show","param":{"TYPE":"total,data","limit":"0,100","ORDER_BY":"","ORDER":""}}
-        
+        url = self._host + ACTION_URL
 
-        url =  self._host + ACTION_URL
-        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
-        try:
-            async with timeout(10): 
-                resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
-        except (
-            ClientConnectorError
-        ) as error:
-            raise UpdateFailed(error)        
-        _LOGGER.debug(resdata)
-        if resdata == 401:
-            self._data = 401
-            return
-        if resdata["Result"] == 10014:
-            self._data = 401
-            return            
-        if resdata["Data"].get("data"):
-            self._data["mac_control"] = resdata["Data"].get("data")
+        resdata = await self.requestpost_json(url, header, json_body)
+
+        if resdata is None: return
+        if isinstance(resdata, int) and resdata == 401: return 401
+        if isinstance(resdata, dict) and resdata.get("Result") == 10014: return 401            
+        
+        data_block = resdata.get("Data", {}) if isinstance(resdata, dict) else {}
+        if data_block.get("data"):
+            data_dict["mac_control"] = data_block.get("data")
         else:
-            self._data["mac_control"] = ""
+            data_dict["mac_control"] = ""
         return
-        
-        
-    async def _get_ikuai_device_tracker(self, sess_key, macaddress, disconnect_refresh_times):
-        header = {
-            'Cookie': 'Cookie: username=admin; login=1; sess_key='+sess_key,
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Content-Type': 'application/json;charset=UTF-8',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.40 Safari/537.36',
-        }
-        
-        json_body = {"func_name":"monitor_lanip","action":"show","param":{"TYPE":"data,total","ORDER_BY":"ip_addr_int","orderType":"IP","limit":"0,20","ORDER":"","FINDS":"ip_addr,mac,comment,username","KEYWORDS":macaddress}}
 
-        url =  self._host + ACTION_URL
-        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
-        try:
-            async with timeout(10): 
-                resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
-        except (
-            ClientConnectorError
-        ) as error:
-            raise UpdateFailed(error)
-        _LOGGER.debug(resdata)
-        if resdata == 401:
-            self._data = 401
-            return
-        if resdata["Result"] == 10014:
-            self._data = 401
-            return            
-        if resdata["Data"].get("data") and resdata["Data"].get("total"):
-            if int(resdata["Data"]["total"]) > 0:            
-                _LOGGER.debug(resdata["Data"].get("data"))
-                if resdata["Data"].get("data")[0]:
-                    self._data["tracker"].append(resdata["Data"].get("data")[0])
-                    self._datatracker[macaddress] = resdata["Data"].get("data")[0]
-                else:
-                    self._data["tracker"].append(self._datatracker[macaddress])
-                self._datarefreshtimes[macaddress] = 0
-                _LOGGER.debug("%s refreshtimes: %s", macaddress, self._datarefreshtimes[macaddress])
-        elif self._datatracker.get(macaddress):            
-            if self._datarefreshtimes[macaddress] < disconnect_refresh_times:
-                self._data["tracker"].append(self._datatracker[macaddress])
-                self._datarefreshtimes[macaddress] = self._datarefreshtimes[macaddress] + 1
-                _LOGGER.debug("%s refreshtimes: %s", macaddress, self._datarefreshtimes[macaddress])        
-        return
-    
-    
-    async def _get_ikuai_switch(self, sess_key, name, show_body, show_on, show_off):
+    async def _get_all_lan_hosts(self, sess_key):
+        """Fetch all LAN hosts to reduce individual tracker requests."""
         header = {
-            'Cookie': 'Cookie: username=admin; login=1; sess_key='+sess_key,
-            'Accept': 'application/json, text/plain, */*',
-            'Accept-Encoding': 'gzip, deflate',
-            'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Cookie': 'Cookie: username='+self._username+'; login=1; sess_key='+sess_key,
             'Content-Type': 'application/json;charset=UTF-8',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.40 Safari/537.36',
         }
+        json_body = {
+            "func_name": "monitor_lanip",
+            "action": "show",
+            "param": {"TYPE": "data,total", "limit": "0,2000", "ORDER_BY": "", "ORDER": ""}
+        }
+        url = self._host + ACTION_URL
         
+        resdata = await self.requestpost_json(url, header, json_body)
+        
+        if resdata is None: return None 
+        if isinstance(resdata, int) and resdata == 401: return 401
+        if isinstance(resdata, dict) and resdata.get("Result") == 10014: return 401
+
+        online_devices = {"ip": {}, "mac": {}}
+        
+        if resdata and isinstance(resdata, dict) and resdata.get("Data"):
+            data_list = resdata["Data"].get("data", [])
+            if data_list:
+                for item in data_list:
+                    if item.get("ip_addr"):
+                        online_devices["ip"][item["ip_addr"]] = item
+                    if item.get("mac"):
+                        online_devices["mac"][item["mac"].lower()] = item
+                    
+        return online_devices
+    
+    async def _get_ikuai_switch(self, sess_key, name, show_body, show_on, show_off, data_dict):
+        """Fetch status for custom configured switches."""
+        header = {
+            'Cookie': 'Cookie: username='+self._username+'; login=1; sess_key='+sess_key,
+            'Content-Type': 'application/json;charset=UTF-8',
+        }
         json_body = show_body
+        url = self._host + ACTION_URL
 
-        url =  self._host + ACTION_URL
-        _LOGGER.debug("Requests remaining: %s: %s", url, json_body)
-        try:
-            async with timeout(10): 
-                resdata = await self._hass.async_add_executor_job(self.requestpost_json, url, header, json_body)
-        except (
-            ClientConnectorError
-        ) as error:
-            raise UpdateFailed(error)
-        _LOGGER.debug(resdata)
-        if resdata == 401:
-            self._data = 401
-            return
-        if resdata["Result"] == 10014:
-            self._data = 401
-            return
+        resdata = await self.requestpost_json(url, header, json_body)
+
+        if resdata is None: return
+        if isinstance(resdata, int) and resdata == 401: return 401
+        if isinstance(resdata, dict) and resdata.get("Result") == 10014: return 401
             
-        
         for key, value in show_on.items():
             show_on_key = key
             show_on_value = value
         for key, value in show_off.items():
             show_off_key = key
             show_off_value = value
-            
-        if resdata.get("Data").get("data") == []:
+        
+        data_block = resdata.get("Data") if isinstance(resdata, dict) else None
+        if not data_block or data_block.get("data") == []:
             return
             
         if show_body["param"].get("TYPE") == "data":
-            if resdata.get("Data")['data'][0][show_on_key] == show_on_value:
-                self._data["switch"].append({"name":name,"onoff":"on"})
-            elif resdata.get("Data")['data'][0][show_off_key] == show_off_value:
-                self._data["switch"].append({"name":name,"onoff":"off"})
+            data_list = data_block.get("data")
+            if data_list and len(data_list) > 0:
+                if data_list[0].get(show_on_key) == show_on_value:
+                    data_dict["switch"].append({"name":name,"onoff":"on"})
+                elif data_list[0].get(show_off_key) == show_off_value:
+                    data_dict["switch"].append({"name":name,"onoff":"off"})
         else:
-            if resdata.get("Data")[show_on_key] == show_on_value:
-                self._data["switch"].append({"name":name,"onoff":"on"})
-            elif resdata.get("Data")[show_off_key] == show_off_value:
-                self._data["switch"].append({"name":name,"onoff":"off"})
+            if data_block.get(show_on_key) == show_on_value:
+                data_dict["switch"].append({"name":name,"onoff":"on"})
+            elif data_block.get(show_off_key) == show_off_value:
+                data_dict["switch"].append({"name":name,"onoff":"off"})
         return
-            
+
+    async def async_execute_action(self, sess_key, action_body):
+        """Execute a specific action call to the router."""
+        header = {
+            'Cookie': 'Cookie: username='+self._username+'; login=1; sess_key='+sess_key,
+            'Content-Type': 'application/json;charset=UTF-8',
+        }
+        url = self._host + ACTION_URL
+        resdata = await self.requestpost_json(url, header, action_body)
         
+        if resdata is None: return None
+        if isinstance(resdata, int): return resdata
+        if isinstance(resdata, dict) and resdata.get("Result") == 10014: return 401
+        return resdata
+
     async def get_data(self, sess_key):  
-        tasks = [            
-            asyncio.create_task(self._get_ikuai_status(sess_key)),
-        ]
-        await asyncio.gather(*tasks)
-        
+        """Orchestrate data fetching for all components including buffering for trackers."""
+        new_data = {
+            "switch": [],
+            "tracker": []
+        }
+
+        status_res = await self._get_ikuai_status(sess_key, new_data)
+        if status_res == 401: return 401
+
         tasks = [
-            asyncio.create_task(self._get_ikuai_waninfo(sess_key)),
-            asyncio.create_task(self._get_ikuai_wan6info(sess_key)),
-            asyncio.create_task(self._get_ikuai_mac_control(sess_key)),
+            asyncio.create_task(self._get_ikuai_waninfo(sess_key, new_data)),
+            asyncio.create_task(self._get_ikuai_wan6info(sess_key, new_data)),
+            asyncio.create_task(self._get_ikuai_mac_control(sess_key, new_data)),
+            asyncio.create_task(self._get_all_lan_hosts(sess_key))
         ]
-        await asyncio.gather(*tasks)
-            
-        self._data["switch"] = []
-        tasks = []
-        
-        # Process built-in switches
+
         for switch in SWITCH_TYPES:
-            tasks = [            
-                asyncio.create_task(self._get_ikuai_switch(sess_key, SWITCH_TYPES[switch]['name'], SWITCH_TYPES[switch]['show_body'], SWITCH_TYPES[switch]['show_on'], SWITCH_TYPES[switch]['show_off'])),
-                ]
-            await asyncio.gather(*tasks)
-        
-        # Process custom switches from configuration
-        for switch_key, switch_config in self._custom_switches_config.items():
-            show_body = switch_config.get('show_body', {})
-            show_on = switch_config.get('show_on', {})
-            show_off = switch_config.get('show_off', {})
+            tasks.append(            
+                asyncio.create_task(self._get_ikuai_switch(
+                    sess_key, 
+                    SWITCH_TYPES[switch]['name'], 
+                    SWITCH_TYPES[switch]['show_body'], 
+                    SWITCH_TYPES[switch]['show_on'], 
+                    SWITCH_TYPES[switch]['show_off'],
+                    new_data
+                ))
+            )
             
-            tasks = [            
-                asyncio.create_task(self._get_ikuai_switch(sess_key, switch_config['name'], show_body, show_on, show_off)),
-                ]
-            await asyncio.gather(*tasks)
-            
-        self._data["tracker"] = []
-        tasks = []
-        for device_tracker in self._device_trackers_config:
-            if self._device_trackers_config[device_tracker].get("disconnect_refresh_times"):
-                disconnect_refresh_times = self._device_trackers_config[device_tracker].get("disconnect_refresh_times")
-            else:
-                disconnect_refresh_times = 2
-            tasks = [            
-                asyncio.create_task(self._get_ikuai_device_tracker(sess_key, self._device_trackers_config[device_tracker]["mac_address"], disconnect_refresh_times)),
-                ]
-            await asyncio.gather(*tasks)
+        results = await asyncio.gather(*tasks)
         
-        _LOGGER.debug(self._data)
+        if 401 in results: return 401
+        
+        all_lan_devices = results[3] 
+        
+        if self._tracker_config:
+            network_error = (all_lan_devices is None)
+
+            for target_id, config in self._tracker_config.items():
+                buffer_times = config.get("buffer", 2)
+                keyword = target_id
+                target_type = config.get("type", "ip")
+                
+                if "type" not in config:
+                    if ":" in keyword and len(keyword) == 17: target_type = "mac"
+                    else: target_type = "ip"
+
+                found_item = None
+                
+                if not network_error and all_lan_devices:
+                    if target_type == "ip" and keyword in all_lan_devices["ip"]:
+                        found_item = all_lan_devices["ip"][keyword]
+                    elif target_type == "mac" and keyword.lower() in all_lan_devices["mac"]:
+                        found_item = all_lan_devices["mac"][keyword.lower()]
+                
+                if found_item:
+                    self._datatracker[keyword] = found_item
+                    self._datarefreshtimes[keyword] = 0
+                    new_data["tracker"].append(found_item)
+                else:
+                    if self._datatracker.get(keyword):
+                        current_times = self._datarefreshtimes.get(keyword, 0)
+                        if current_times < buffer_times:
+                            new_data["tracker"].append(self._datatracker[keyword])
+                            self._datarefreshtimes[keyword] = current_times + 1
+
+        self._data = new_data
         return self._data
 
-
 class GetDataError(Exception):
-    """request error or response data is unexpected"""
+    """Custom exception for data fetching errors."""
