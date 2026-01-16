@@ -110,14 +110,34 @@ SWITCH_TYPES = {
 
 ---
 
-## 🧠 举一反三
+## 🧠 举一反三：自定义按键 (BUTTON_TYPES)
 
-上述方法同样适用于修改 `SWITCH_TYPES` (开关)：
+除了有“开/关”状态的开关外，iKuai 中还有许多**“单次触发”**的功能（如重启路由器、WAN 口重拨、清理缓存等）。这类功能在 Home Assistant 中对应为 **Button (按键)** 实体，配置在 `BUTTON_TYPES` 中。
 
-### 修改 SWITCH_TYPES
-任何"开/关"功能都可添加为开关，例如"允许/禁止 Ping"：
-- 抓取"允许 Ping" → `turn_on_body`
-- 抓取"禁止 Ping" → `turn_off_body`
-- 抓取查询设置 → `show_body`
+**配置特点：**
+相比开关，按键的配置更加简单，只需要抓取点击按钮时发送的**执行指令** (`action_body`)，不需要查询状态。
+
+**抓包与配置示例：**
+以“重连 WAN 网络”为例，抓取点击重连时的请求载荷，填入 `action_body` 即可：
+
+```python
+# custom_components/ikuai/const.py
+
+BUTTON_TYPES = {
+    # ... 其他按键 ...
+
+    "ikuai_restart_reconnect_wan": {
+        "label": "重连wan网络",        # HA 显示名称
+        "name": "Reconnect_wan",      # 内部标识
+        "device_class": "restart",    # 图标/类型样式
+        
+        # 填入抓包获取的执行参数
+        "action_body": {"func_name": "wan", "action": "link_pppoe_reconnect", "param": {"id": 1}}
+    },
+}
+
+```
+
+
 
 
