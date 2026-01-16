@@ -28,7 +28,7 @@
     * **灵活配置**：支持扫描在线设备选择，或通过文本自定义批量添加。
 
 ### 📸 效果预览
-> ![iKuai 仪表盘示例]<img width="378" height="707" alt="image" src="https://github.com/user-attachments/assets/5062cc74-0722-4ada-87f3-516314bb0c86" />
+> <img width="378" height="707" alt="image" src="https://github.com/user-attachments/assets/5062cc74-0722-4ada-87f3-516314bb0c86" />
 
 ---
 
