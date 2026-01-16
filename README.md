@@ -136,11 +136,12 @@ AA:BB:CC:DD:EE:01#5:MyPhone
 
 **注意**：修改 `const.py` 后必须**重启 Home Assistant** 才能生效。
 
+**配置示例：**
 ```python
 # custom_components/ikuai/const.py 示例
 
 DEVICE_TRACKERS = {
-    "redmi_k50": {
+    "iphone_user": {
         "name": "iPhone13_dscao",
         "mac_address": "64:6d:2f:xx:xx:xx",
         "disconnect_refresh_times": 3  # 掉线缓冲次数
@@ -153,6 +154,11 @@ DEVICE_TRACKERS = {
 }
 
 ```
+
+⚠️ **重要提醒：**
+使用 **Const 代码模式** 时，通过 HACS 更新集成会**覆盖** `const.py` 文件。在更新前，请务必手动**备份**您的配置，待更新完成后再恢复，以免配置丢失。
+
+> 📖 **[查看高阶教程：如何抓包自定义 iKuai 开关实体](docs/ADVANCED_GUIDE.md)**
 
 ---
 
@@ -171,6 +177,9 @@ A:
 * **IP 排除**: 追踪所有在线 IP，**除了** 你在列表中指定的 IP。
 * **MAC 排除**: 追踪所有在线 MAC，**除了** 你在列表中指定的 MAC。
 * 两者逻辑独立运行，互不干扰。
+
+**Q: 📝 自定义添加里为什么不能留空来一键清空？**
+A: 留空=放弃修改，防止手滑全删，所以再次编辑时必须**至少保留一个**；真要删请回主菜单用“🗑️ 删除设备”勾选。
 
 **Q: 我修改了 Const 文件，为什么没生效？**
 A: Const 模式是硬编码模式，修改 python 文件后，必须**重启 Home Assistant** 才能重新加载配置。如果希望即时修改，请在集成选项中切换回 **UI 模式**。
