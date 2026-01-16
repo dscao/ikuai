@@ -48,15 +48,16 @@ Home Assistant 与 iKuai 的交互本质是模拟浏览器 API 请求：
 1. 浏览器登录爱快后台，进入**网络设置 → 流控分流 → 智能流控**
 2. 按 **F12** 打开开发者工具，切换到 **网络 (Network)** 选项卡
 3. 过滤器输入 `call` 筛选请求
-4. 网页操作：选择"智能模式"并点击**保存/生效**
+4. 网页操作：选择"智能模式"并点击**点击生效**
 5. 在网络列表中点击最新 `call` 请求，查看**载荷 (Payload)**
 6. 确认 `func_name` 为 `stream_control`，复制 JSON 对象
 7. 粘贴到 `const.py` 的 `"turn_on_body"` 中
+<img width="1407" height="630" alt="image" src="https://github.com/user-attachments/assets/3557213b-15b6-493c-ac35-fbc100b4514f" />
 
 ### 3. 获取关闭指令 (turn_off_body)
 
 1. 保持开发者工具开启
-2. 网页操作：选择"关闭流控"或"禁用"并点击**保存/生效**
+2. 网页操作：选择"关闭流控"或"禁用"并点击**点击生效**
 3. 在网络列表中找到最新 `call` 请求
 4. 复制载荷 JSON，粘贴到 `"turn_off_body"`
 
@@ -67,6 +68,7 @@ Home Assistant 需要知道开关当前状态：
 1. 按 **F5** 刷新网页，等待加载完成
 2. 在网络列表中查找 `action` 为 `show` 且 `func_name` 为 `stream_control` 的`call`请求（通常在加载初期发起）
 3. 复制请求载荷 JSON，粘贴到 `"show_body"`
+<img width="1385" height="695" alt="image" src="https://github.com/user-attachments/assets/0fa659c1-46ec-4a99-b420-9ebfccd41527" />
 
 ### 5. 确定状态判断条件 (show_on / show_off)
 
@@ -110,17 +112,12 @@ SWITCH_TYPES = {
 
 ## 🧠 举一反三
 
-上述方法同样适用于修改 `SENSOR_TYPES` (传感器)：
-
-### 修改 SENSOR_TYPES
-如需添加监控特定接口流量的传感器：
-1. 抓包找到网页上显示该数据的 `show` 请求
-2. 在 `SENSOR_TYPES` 中配置 `name`, `label`, `unit_of_measurement`
-3. 复杂数据提取可能需配合修改 `data_fetcher.py`
+上述方法同样适用于修改 `SWITCH_TYPES` (开关)：
 
 ### 修改 SWITCH_TYPES
 任何"开/关"功能都可添加为开关，例如"允许/禁止 Ping"：
 - 抓取"允许 Ping" → `turn_on_body`
 - 抓取"禁止 Ping" → `turn_off_body`
 - 抓取查询设置 → `show_body`
+
 
