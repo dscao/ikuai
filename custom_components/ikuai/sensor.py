@@ -7,10 +7,8 @@ from .const import COORDINATOR, DOMAIN, SENSOR_TYPES
 
 _LOGGER = logging.getLogger(__name__)
 
-
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    """Add bjtoon_health_code entities from a config_entry."""
-
+    """Set up iKuai sensor entities from a config entry."""
     coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
 
     sensors = []
@@ -19,31 +17,30 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     async_add_entities(sensors, False)
 
-
 class IKUAISensor(CoordinatorEntity):
-    """Define an bjtoon_health_code entity."""
+    """Define an iKuai sensor entity."""
     
     _attr_has_entity_name = True
 
     def __init__(self, kind, coordinator):
-        """Initialize."""
+        """Initialize the sensor."""
         super().__init__(coordinator)
         self.kind = kind
         self.coordinator = coordinator
-        
 
     @property
     def name(self):
-        """Return the name."""
+        """Return the name of the sensor."""
         return f"{SENSOR_TYPES[self.kind]['name']}"
 
     @property
     def unique_id(self):
+        """Return a unique ID for this entity."""
         return f"{DOMAIN}_{self.kind}_{self.coordinator.host}"
         
     @property
     def device_info(self):
-        """Return the device info."""
+        """Return device information."""
         return {
             "identifiers": {(DOMAIN, self.coordinator.host)},
             "name": self.coordinator.data["device_name"],
@@ -54,7 +51,7 @@ class IKUAISensor(CoordinatorEntity):
 
     @property
     def should_poll(self):
-        """Return the polling requirement of the entity."""
+        """No polling needed for coordinator entities."""
         return False
 
     @property
@@ -64,28 +61,29 @@ class IKUAISensor(CoordinatorEntity):
 
     @property
     def state(self):
-        """Return the state."""
+        """Return the state of the sensor."""
         return self.coordinator.data[self.kind]
 
     @property
     def icon(self):
-        """Return the icon."""
+        """Return the icon of the sensor."""
         return SENSOR_TYPES[self.kind]["icon"]
         
     @property
     def unit_of_measurement(self):
-        """Return the unit_of_measurement."""
+        """Return the unit of measurement."""
         if SENSOR_TYPES[self.kind].get("unit_of_measurement"):
             return SENSOR_TYPES[self.kind]["unit_of_measurement"]
         
     @property
     def device_class(self):
-        """Return the unit_of_measurement."""
+        """Return the device class."""
         if SENSOR_TYPES[self.kind].get("device_class"):
             return SENSOR_TYPES[self.kind]["device_class"]
         
     @property
     def state_attributes(self): 
+        """Return the state attributes."""
         attrs = {}
         data = self.coordinator.data
         if self.coordinator.data.get(self.kind + "_attrs"):
@@ -95,11 +93,10 @@ class IKUAISensor(CoordinatorEntity):
         return attrs  
 
     async def async_added_to_hass(self):
-        """Connect to dispatcher listening for entity data notifications."""
+        """Handle entity which will be added."""
         self.async_on_remove(
             self.coordinator.async_add_listener(self.async_write_ha_state)
         )
-
     async def async_update(self):
         """Update entity."""
         #await self.coordinator.async_request_refresh()
