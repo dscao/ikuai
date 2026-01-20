@@ -138,6 +138,56 @@ BUTTON_TYPES = {
 
 ```
 
+## 自定义开关configuration配置 （推荐方式，升级或迁移不影响）
+iKuai 集成同时支持通过 configuration.yaml 配置自定义开关。
 
+### 配置方法
+在您的 configuration.yaml 或者 packages 目录下任一yaml文件中添加以下配置：
 
+```yaml
+ikuai:
+  custom_switches:
+    # 自定义开关示例 - NAS 分流
+    nas_flow_to_world:
+      label: "NAS分流"
+      name: "Nas_flow_to_world"
+      icon: "mdi:nas"
+      turn_on_body:
+        func_name: "stream_ipport"
+        action: "up"
+        param:
+          id: 5
+      turn_off_body:
+        func_name: "stream_ipport"
+        action: "down"
+        param:
+          id: 5
+      show_body:
+        func_name: "stream_ipport"
+        action: "show"
+        param:
+          TYPE: "data"
+          limit: "0,20"
+          ORDER_BY: ""
+          ORDER: ""
+          FINDS: "comment"
+          KEYWORDS: "nasflow"
+      show_on:
+        enabled: "yes"
+      show_off:
+        enabled: "no"
+
+```
+
+### 配置参数说明
+
+label: 开关在 Home Assistant 中显示的友好名称 \
+name: 开关的内部名称（用于与 iKuai API 通信） \
+turn_on_body: 打开开关时发送给 iKuai API 的请求体 \
+turn_off_body: 关闭开关时发送给 iKuai API 的请求体 \
+
+icon: 开关的图标（默认: mdi:toggle-switch） \
+show_body: 查询开关状态时发送的请求体 \
+show_on: 判断开关为"开启"状态的条件 \
+show_off: 判断开关为"关闭"状态的条件
 
