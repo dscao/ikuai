@@ -181,8 +181,8 @@ ikuai:
 
 ### 配置参数说明
 
-label: 开关在 Home Assistant 中显示的友好名称 \
-name: 开关的内部名称（用于与 iKuai API 通信） \
+label: 仅用于代码中标识，方便编写人员识别 \
+name: 开关的名称（用于与 iKuai API 通信，尽量用英文字母和下划线） \
 turn_on_body: 打开开关时发送给 iKuai API 的请求体 \
 turn_off_body: 关闭开关时发送给 iKuai API 的请求体 \
 
@@ -190,4 +190,5 @@ icon: 开关的图标（默认: mdi:toggle-switch） \
 show_body: 查询开关状态时发送的请求体 \
 show_on: 判断开关为"开启"状态的条件 \
 show_off: 判断开关为"关闭"状态的条件
+
 
