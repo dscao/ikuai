@@ -18,10 +18,12 @@ from .const import (
     UNDO_UPDATE_LISTENER,
     CONF_TRACKER_CONFIG,
     CONF_SOURCE_MODE, 
-    MODE_CONST
+    MODE_CONST,
+    CONF_CUSTOM_SWITCHES,
 )
 from homeassistant.exceptions import ConfigEntryNotReady
-
+import voluptuous as vol
+import homeassistant.helpers.config_validation as cv
 import time
 import datetime
 import logging
@@ -31,9 +33,43 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BUTTON, Platform.SWITCH, Platform.DEVICE_TRACKER]
 
+
+# Configuration schema for custom switches
+CUSTOM_SWITCH_SCHEMA = vol.Schema({
+    vol.Required("label"): cv.string,
+    vol.Required("name"): cv.string,
+    vol.Optional("icon", default="mdi:toggle-switch"): cv.string,
+    vol.Required("turn_on_body"): dict,
+    vol.Required("turn_off_body"): dict,
+    vol.Optional("show_body"): dict,
+    vol.Optional("show_on"): dict,
+    vol.Optional("show_off"): dict,
+})
+
+# Configuration schema for the domain
+CONFIG_SCHEMA = vol.Schema({
+    DOMAIN: vol.Schema({
+        vol.Optional(CONF_CUSTOM_SWITCHES, default={}): vol.Schema({
+            cv.string: CUSTOM_SWITCH_SCHEMA
+        })
+    })
+}, extra=vol.ALLOW_EXTRA)
+
+
 async def async_setup(hass: HomeAssistant, config: Config) -> bool:
     """Set up the iKuai component."""
     hass.data.setdefault(DOMAIN, {})
+        
+    # Get configuration from configuration.yaml
+    conf = config.get(DOMAIN, {})
+    custom_switches_config = conf.get(CONF_CUSTOM_SWITCHES, {})
+    
+    if custom_switches_config:
+        _LOGGER.info("Loaded %d custom switches from configuration.yaml", len(custom_switches_config))
+    else:
+        _LOGGER.info("No custom switches configured in configuration.yaml.")
+    # Store the configurations in hass.data
+    hass.data[DOMAIN]["custom_switches"] = custom_switches_config
     return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

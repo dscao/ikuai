@@ -1,4 +1,4 @@
-"""Constants for the ikuai integration."""
+"""Constants for the ikuai health code integration."""
 
 DOMAIN = "ikuai"
 
@@ -10,20 +10,18 @@ CONF_HOST = "host"
 CONF_TOKEN_EXPIRE_TIME = "token_expire_time"
 COORDINATOR = "coordinator"
 CONF_UPDATE_INTERVAL = "update_interval_seconds"
-
-
-CONF_ACT_BUFFER = "default_disconnect_times"
+CONF_CUSTOM_SWITCHES = "custom_switches"
+CONF_ACT_BUFFER = "act_buffer"
 CONF_TRACKER_CONFIG = "tracker_config"
 CONF_SOURCE_MODE = "source_mode"
-
-MODE_UI = "ui"
-MODE_CONST = "const"
+MODE_UI = "mode_ui"
+MODE_CONST = "mode_const"
 
 UNDO_UPDATE_LISTENER = "undo_update_listener"
 
 ##### IKUAI URL
 LOGIN_URL = "/Action/login"
-ACTION_URL = "/Action/call" 
+ACTION_URL = "/Action/call"
 
 
 ### Sensor Configuration
@@ -64,7 +62,7 @@ SENSOR_TYPES = {
         "label": "AP数",
         "name": "Ap_online",
         "unit_of_measurement": "个",
-    },    
+    },
     "ikuai_total_up": {
         "icon": "mdi:upload-network",
         "label": "上传总量",
@@ -76,7 +74,7 @@ SENSOR_TYPES = {
         "label": "下载总量",
         "name": "Totaldown",
         "unit_of_measurement": "GB",
-    },     
+    },
     "ikuai_upload": {
         "icon": "mdi:wifi-arrow-up",
         "label": "上传速度",
@@ -110,6 +108,11 @@ SENSOR_TYPES = {
         "label": "WAN IP6",
         "name": "Wan6_ip",
     },
+    "ikuai_lan6_ip": {
+        "icon": "mdi:ip-network",
+        "label": "LAN IP6",
+        "name": "Lan6_ip",
+    },
 }
 
 
@@ -140,27 +143,14 @@ SWITCH_TYPES = {
         "show_on": {'arp_filter': 1},
         "show_off": {'arp_filter': 0},
     },
-    "ikuai_nas_port_flow_to_world": {
-        "icon": "mdi:nas",
-        "label": "NAS分流至科学上网",
-        "name": "Nas_flow_to_world",
-        "turn_on_body": {"func_name":"stream_ipport","action":"up","param":{"id":5}},
-        "turn_off_body":{"func_name":"stream_ipport","action":"down","param":{"id":5}},
-        "show_body": {"func_name":"stream_ipport","action":"show","param":{"TYPE":"data","limit":"0,20","ORDER_BY":"","ORDER":"","FINDS":"comment","KEYWORDS":"nas科学上网"}},
-        "show_on": {'enabled':"yes"},
-        "show_off": {'enabled':"no"},
-    },
     "ikuai_stream_control": {
         "icon": "mdi:network-outline",
-        "label": "iKuai流控模式",
+        "label": "iKuai流控模式（自动/关闭）",
         "name": "Stream control",
         "turn_on_body": {"func_name": "stream_control", "action": "seting", "param": {"stream_ctl_mode": 1}},
         "turn_off_body": {"func_name": "stream_control", "action": "seting", "param": {"stream_ctl_mode": 0}},
         "show_body": {"func_name":"stream_control","action":"show","param":{"TYPE":"stream_ctl_mode"}},
         "show_on": {"stream_ctl_mode": 1},
         "show_off": {"stream_ctl_mode": 0},
-    },    
-}
-
-DEVICE_TRACKERS = {
+    }
 }

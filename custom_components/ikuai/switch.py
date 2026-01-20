@@ -6,7 +6,7 @@ from homeassistant.components.switch import (
     SwitchEntity,
 )
 from .const import (
-    COORDINATOR, DOMAIN, CONF_HOST, CONF_USERNAME, CONF_PASSWD, CONF_PASS, SWITCH_TYPES
+    COORDINATOR, DOMAIN, CONF_HOST, CONF_USERNAME, CONF_PASSWD, CONF_PASS, SWITCH_TYPES, CONF_CUSTOM_SWITCHES
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -19,7 +19,14 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     
     if SWITCH_TYPES:
         for switch in SWITCH_TYPES:
-            switchs.append(IKUAISwitch(hass, switch, coordinator))
+            switchs.append(IKUAISwitch(hass, switch, coordinator,is_custom=False))
+            
+    custom_switches_config = hass.data[DOMAIN].get("custom_switches", {})
+    if custom_switches_config:
+        _LOGGER.debug("setup custom switches")
+        for switch_key, switch_config in custom_switches_config.items():
+            switchs.append(IKUAISwitch(hass, switch_key, coordinator, is_custom=True, custom_config=switch_config))
+            _LOGGER.debug(switch_config["name"])
 
     if coordinator.data.get("mac_control"):
         listmacdata = coordinator.data.get("mac_control")
@@ -55,11 +62,23 @@ class IKUAIBaseSwitch(SwitchEntity):
 class IKUAISwitch(IKUAIBaseSwitch):
     """Define a static iKuai switch entity."""
 
-    def __init__(self, hass, kind, coordinator):
+    def __init__(self, hass, kind, coordinator,is_custom=False, custom_config=None):
         """Initialize the switch."""
         super().__init__(hass, coordinator)
         self.kind = kind
-        self._name = SWITCH_TYPES[self.kind]['name']
+        
+        # Set properties based on whether it's custom or built-in
+        if is_custom and custom_config:
+            self._attr_icon = custom_config.get('icon', 'mdi:toggle-switch')
+            self._name = custom_config['name']
+            self._turn_on_body = custom_config['turn_on_body']
+            self._turn_off_body = custom_config['turn_off_body']
+        else:
+            self._attr_icon = SWITCH_TYPES[self.kind]['icon']
+            self._name = SWITCH_TYPES[self.kind]['name']
+            self._turn_on_body = SWITCH_TYPES[self.kind]['turn_on_body']
+            self._turn_off_body = SWITCH_TYPES[self.kind]['turn_off_body']
+        
 
     @property
     def name(self):
@@ -74,7 +93,7 @@ class IKUAISwitch(IKUAIBaseSwitch):
     @property
     def icon(self):
         """Return the icon of the switch."""
-        return SWITCH_TYPES[self.kind]['icon']
+        return self._attr_icon
 
     @property
     def is_on(self):
@@ -87,12 +106,12 @@ class IKUAISwitch(IKUAIBaseSwitch):
 
     async def async_turn_on(self, **kwargs):
         """Turn the switch on."""
-        await self.coordinator.async_control_device(SWITCH_TYPES[self.kind]['turn_on_body'])
+        await self.coordinator.async_control_device(self._turn_on_body)
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs):
         """Turn the switch off."""
-        await self.coordinator.async_control_device(SWITCH_TYPES[self.kind]['turn_off_body'])
+        await self.coordinator.async_control_device(self._turn_off_body)
         await self.coordinator.async_request_refresh()
 
 class IKUAISwitchmac(IKUAIBaseSwitch):
