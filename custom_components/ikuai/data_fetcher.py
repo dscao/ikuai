@@ -451,7 +451,7 @@ class DataFetcher:
 
         if 401 in results: return 401
 
-        all_lan_devices = results[3]
+        all_lan_devices = results[4]
 
         if self._tracker_config:
             network_error = (all_lan_devices is None)
