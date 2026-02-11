@@ -41,12 +41,13 @@ class IKUAISensor(CoordinatorEntity):
     @property
     def device_info(self):
         """Return device information."""
+        data = self.coordinator.data if self.coordinator.data else {}
         return {
             "identifiers": {(DOMAIN, self.coordinator.host)},
-            "name": self.coordinator.data["device_name"],
+            "name": data.get("device_name", "iKuai Router"),
             "manufacturer": "iKuai",
             "model": "iKuai Router",
-            "sw_version": self.coordinator.data["sw_version"],
+            "sw_version": data.get("sw_version", "Unknown"),
         }
 
     @property
@@ -62,7 +63,9 @@ class IKUAISensor(CoordinatorEntity):
     @property
     def state(self):
         """Return the state of the sensor."""
-        return self.coordinator.data[self.kind]
+        if self.coordinator.data is None:
+            return None
+        return self.coordinator.data.get(self.kind)
 
     @property
     def icon(self):
@@ -86,11 +89,15 @@ class IKUAISensor(CoordinatorEntity):
         """Return the state attributes."""
         attrs = {}
         data = self.coordinator.data
-        if self.coordinator.data.get(self.kind + "_attrs"):
-            attrs = self.coordinator.data[self.kind + "_attrs"]
-        if data:            
-            attrs["querytime"] = data["querytime"]        
-        return attrs  
+        if data and data.get(self.kind + "_attrs"):
+            attrs = data[self.kind + "_attrs"]
+
+        if data and "querytime" in data:
+            attrs["querytime"] = data["querytime"]
+        else:
+            attrs["querytime"] = "Unknown"
+            
+        return attrs
 
     async def async_added_to_hass(self):
         """Handle entity which will be added."""
