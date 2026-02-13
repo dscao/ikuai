@@ -98,8 +98,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             tracker_config = {}
     else:
         tracker_config = entry.data.get(CONF_TRACKER_CONFIG, {})
+        
+    custom_switches_config = hass.data[DOMAIN].get("custom_switches", {})
 
-    coordinator = IKUAIDataUpdateCoordinator(hass, host, username, passwd, pas, update_interval_seconds, tracker_config)
+    coordinator = IKUAIDataUpdateCoordinator(hass, host, username, passwd, pas, update_interval_seconds, tracker_config, custom_switches_config)
     await coordinator.async_refresh()
 
     if not coordinator.last_update_success:
@@ -141,7 +143,7 @@ async def update_listener(hass, entry):
 class IKUAIDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching iKuai data."""
 
-    def __init__(self, hass, host, username, passwd, pas, update_interval_seconds, tracker_config):
+    def __init__(self, hass, host, username, passwd, pas, update_interval_seconds, tracker_config, custom_switches_config):
         """Initialize the coordinator."""
         update_interval = datetime.timedelta(seconds=update_interval_seconds)
         _LOGGER.debug("%s Data will be update every %s", host, update_interval)
@@ -151,7 +153,7 @@ class IKUAIDataUpdateCoordinator(DataUpdateCoordinator):
     
         super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=update_interval)
 
-        self._fetcher = DataFetcher(hass, host, username, passwd, pas, tracker_config)
+        self._fetcher = DataFetcher(hass, host, username, passwd, pas, tracker_config, custom_switches_config)
         self.host = host
         
     async def get_access_token(self):
