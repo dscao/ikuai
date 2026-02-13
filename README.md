@@ -1,7 +1,7 @@
 # Home Assistant Custom Component: iKuai Router (爱快路由器)
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![ha-ikuai version](https://img.shields.io/badge/ikuai-2026.1.16-blue.svg)](https://github.com/dscao/ikuai)
+[![ha-ikuai version](https://img.shields.io/badge/ikuai-blue.svg)](https://github.com/dscao/ikuai)
 [![Maintainer](https://img.shields.io/badge/maintainer-dscao-orange)](https://github.com/dscao)
 
 **iKuai Router** 集成允许将爱快路由器接入 Home Assistant，提供详细的传感器监控、网络控制开关、以及功能强大的设备追踪（Device Tracker）功能。
