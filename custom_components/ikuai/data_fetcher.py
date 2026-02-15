@@ -55,7 +55,24 @@ class DataFetcher:
                     async with self._session_client.post(url, headers=headerstr, json=json_body) as response:
                         if response.status != 200:
                             return None
-                        text = await response.text()
+                    # 尝试多种编码方式
+                        try:
+                            text = await response.text()
+                        except UnicodeDecodeError:
+                            # 如果UTF-8解码失败，读取原始字节并尝试其他编码
+                            content = await response.read()
+                            
+                            # 尝试常见编码
+                            for encoding in ['gbk', 'gb2312', 'latin-1', 'cp1252']:
+                                try:
+                                    text = content.decode(encoding)
+                                    _LOGGER.debug(f"Successfully decoded with {encoding}")
+                                    break
+                                except UnicodeDecodeError:
+                                    continue
+                            else:
+                                # 如果所有编码都失败，使用latin-1（不会抛出异常）
+                                text = content.decode('latin-1', errors='ignore')
                         if self.is_json(text):
                             return json.loads(text)
                         return text
