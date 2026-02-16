@@ -47,6 +47,14 @@ class DataFetcher:
             return False
         return True
 
+    def is_json(self, jsonstr):
+        """Check if a string is valid JSON."""
+        try:
+            json.loads(jsonstr)
+        except (ValueError, TypeError):
+            return False
+        return True
+
     async def requestpost_json(self, url, headerstr, json_body):
         """Send an asynchronous POST request and return JSON data."""
         async with self._semaphore:
@@ -55,24 +63,24 @@ class DataFetcher:
                     async with self._session_client.post(url, headers=headerstr, json=json_body) as response:
                         if response.status != 200:
                             return None
-                    # 尝试多种编码方式
-                        try:
-                            text = await response.text()
-                        except UnicodeDecodeError:
-                            # 如果UTF-8解码失败，读取原始字节并尝试其他编码
-                            content = await response.read()
-                            
-                            # 尝试常见编码
-                            for encoding in ['gbk', 'gb2312', 'latin-1', 'cp1252']:
-                                try:
-                                    text = content.decode(encoding)
-                                    _LOGGER.debug(f"Successfully decoded with {encoding}")
-                                    break
-                                except UnicodeDecodeError:
-                                    continue
-                            else:
-                                # 如果所有编码都失败，使用latin-1（不会抛出异常）
-                                text = content.decode('latin-1', errors='ignore')
+                        
+                        # 直接读取原始字节流，手动尝试多种编码解码
+                        content = await response.read()
+                        
+                        text = None
+                        # 依次尝试：UTF-8 -> GBK -> GB18030 -> Latin-1
+                        for encoding in ['utf-8', 'gbk', 'gb18030', 'latin-1']:
+                            try:
+                                text = content.decode(encoding)
+                                break
+                            except UnicodeDecodeError:
+                                continue
+                        
+                        # 如果所有已知编码都失败，则忽略错误强制解码（防止集成崩溃）
+                        if text is None:
+                            text = content.decode('utf-8', errors='ignore')
+                            _LOGGER.debug("All standard decodings failed, using ignore mode.")
+
                         if self.is_json(text):
                             return json.loads(text)
                         return text
