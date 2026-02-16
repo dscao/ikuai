@@ -47,14 +47,6 @@ class DataFetcher:
             return False
         return True
 
-    def is_json(self, jsonstr):
-        """Check if a string is valid JSON."""
-        try:
-            json.loads(jsonstr)
-        except (ValueError, TypeError):
-            return False
-        return True
-
     async def requestpost_json(self, url, headerstr, json_body):
         """Send an asynchronous POST request and return JSON data."""
         async with self._semaphore:
