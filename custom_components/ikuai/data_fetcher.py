@@ -268,7 +268,14 @@ class DataFetcher:
 
     async def get_data(self, sess_key):
         """Orchestrate data fetching for all components."""
-        new_data = {"switch": [], "tracker": [], "ikuai_wan_ip": "未检测到"}
+        new_data = {
+            "switch": [], 
+            "tracker": [], 
+            "ikuai_wan_ip": "未检测到",
+            "querytime": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "device_name": "iKuai",
+            "sw_version": "Unknown"
+        }
         
         # 并发抓取主要状态
         status_res = await self._get_ikuai_status(sess_key, new_data)
