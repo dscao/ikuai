@@ -1,13 +1,18 @@
 {
   "domain": "ikuai",
-  "name": "ikuai",  
+  "name": "iKuai",
   "codeowners": ["@dscao"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/dscao/ikuai",  
+  "documentation": "https://github.com/dscao/ikuai",
   "integration_type": "device",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/dscao/ikuai/issues",
+  "logins": [],
   "requirements": [],
-  "version": "2026.2.16"
+  "version": "2026.2.13",
+  "dhcp": [
+    { "hostname": "ikuai*", "macaddress": "8446FE*" },
+    { "hostname": "ikuai*", "macaddress": "001018*" }
+  ]
 }

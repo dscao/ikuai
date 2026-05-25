@@ -1,109 +1,73 @@
-"""IKUAI Entities"""
-import logging
+"""Support for iKuai sensor entities."""
+from __future__ import annotations
+
+from typing import Any
+
+from homeassistant.components.sensor import SensorEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.device_registry import DeviceEntryType
 
-from .const import COORDINATOR, DOMAIN, SENSOR_TYPES
+from .const import DOMAIN, SENSOR_TYPES, IkuaiSensorEntityDescription
+from .coordinator import IKUAIDataUpdateCoordinator
 
-_LOGGER = logging.getLogger(__name__)
-
-async def async_setup_entry(hass, config_entry, async_add_entities):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
     """Set up iKuai sensor entities from a config entry."""
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
+    # 从 runtime_data 获取协调器
+    coordinator: IKUAIDataUpdateCoordinator = entry.runtime_data
 
-    sensors = []
-    for sensor in SENSOR_TYPES:
-        sensors.append(IKUAISensor(sensor, coordinator))
+    # 基于描述符批量创建实体
+    async_add_entities(
+        IkuaiSensor(coordinator, description)
+        for description in SENSOR_TYPES
+    )
 
-    async_add_entities(sensors, False)
 
-class IKUAISensor(CoordinatorEntity):
+class IkuaiSensor(CoordinatorEntity[IKUAIDataUpdateCoordinator], SensorEntity):
     """Define an iKuai sensor entity."""
-    
+
+    entity_description: IkuaiSensorEntityDescription
     _attr_has_entity_name = True
 
-    def __init__(self, kind, coordinator):
+    def __init__(
+        self,
+        coordinator: IKUAIDataUpdateCoordinator,
+        description: IkuaiSensorEntityDescription,
+    ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self.kind = kind
-        self.coordinator = coordinator
-
-    @property
-    def name(self):
-        """Return the name of the sensor."""
-        return f"{SENSOR_TYPES[self.kind]['name']}"
-
-    @property
-    def unique_id(self):
-        """Return a unique ID for this entity."""
-        return f"{DOMAIN}_{self.kind}_{self.coordinator.host}"
+        self.entity_description = description
         
-    @property
-    def device_info(self):
-        """Return device information."""
-        data = self.coordinator.data if self.coordinator.data else {}
-        return {
-            "identifiers": {(DOMAIN, self.coordinator.host)},
-            "name": data.get("device_name", "iKuai Router"),
-            "manufacturer": "iKuai",
-            "model": "iKuai Router",
-            "sw_version": data.get("sw_version", "Unknown"),
-        }
+        # 唯一 ID：由域名、描述符 key 和主机地址组成
+        self._attr_unique_id = f"{DOMAIN}_{description.key}_{coordinator.host}"
+        
+        # 引用协调器统一定义的设备信息
+        self._attr_device_info = coordinator.device_info
 
     @property
-    def should_poll(self):
-        """No polling needed for coordinator entities."""
-        return False
-
-    @property
-    def available(self):
-        """Return True if entity is available."""
-        return self.coordinator.last_update_success
-
-    @property
-    def state(self):
-        """Return the state of the sensor."""
-        if self.coordinator.data is None:
+    def native_value(self) -> Any:
+        """返回传感器的当前状态值."""
+        if not self.coordinator.data:
             return None
-        return self.coordinator.data.get(self.kind)
+            
+        # 逻辑：直接通过描述符的 key 从清洗后的数据字典中取值
+        return self.coordinator.data.get(self.entity_description.key)
 
     @property
-    def icon(self):
-        """Return the icon of the sensor."""
-        return SENSOR_TYPES[self.kind]["icon"]
-        
-    @property
-    def unit_of_measurement(self):
-        """Return the unit of measurement."""
-        if SENSOR_TYPES[self.kind].get("unit_of_measurement"):
-            return SENSOR_TYPES[self.kind]["unit_of_measurement"]
-        
-    @property
-    def device_class(self):
-        """Return the device class."""
-        if SENSOR_TYPES[self.kind].get("device_class"):
-            return SENSOR_TYPES[self.kind]["device_class"]
-        
-    @property
-    def state_attributes(self): 
-        """Return the state attributes."""
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """返回扩展属性."""
         attrs = {}
         data = self.coordinator.data
-        if data and data.get(self.kind + "_attrs"):
-            attrs = data[self.kind + "_attrs"]
+        if not data:
+            return attrs
 
-        if data and "querytime" in data:
-            attrs["querytime"] = data["querytime"]
-        else:
-            attrs["querytime"] = "Unknown"
+        attr_key = f"{self.entity_description.key}_attrs"
+        if data.get(attr_key):
+            attrs.update(data[attr_key])
             
         return attrs
-
-    async def async_added_to_hass(self):
-        """Handle entity which will be added."""
-        self.async_on_remove(
-            self.coordinator.async_add_listener(self.async_write_ha_state)
-        )
-    async def async_update(self):
-        """Update entity."""
-        #await self.coordinator.async_request_refresh()

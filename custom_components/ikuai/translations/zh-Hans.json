@@ -1,139 +1,144 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "该设备已配置"
-        },
-        "error": {
-            "cannot_connect": "连接失败",
-            "invalid_auth": "用户名或密码错误",
-            "invalid_ip_format": "IP 地址格式错误 (示例: 192.168.1.1)",
-            "invalid_subnet_format": "网段格式错误 (示例: 192.168.1.0/24)",
-            "invalid_mac_format": "MAC 地址格式错误 (示例: AA:BB:CC:DD:EE:FF)",
-            "no_devices_found": "未找到有效设备，或排除模式下列表为空",
-            "unknown": "未知错误",
-            "login_timeout": "登录超时，请检查网络连接",
-            "invalid_buffer": "数值必须大于等于 1",
-            "interval_too_small": "刷新间隔必须大于等于 5 秒",
-            "expected_int": "请输入有效的整数"
-        },
-        "step": {
-            "user": {
-                "title": "连接爱快路由",
-                "data": {
-                    "host": "主机Web地址（如：http://192.168.1.1）",
-                    "username": "用户名",
-                    "password": "密码",
-                    "update_interval_seconds": "全局刷新间隔时间 (秒)",
-                    "default_disconnect_times": "全局默认掉线缓冲 (次)",
-                    "source_mode": "配置模式 (Const模式需重启生效)"
-                }
-            },
-            "menu": {
-                "title": "选择添加方式",
-                "menu_options": {
-                    "scan_add": "🚀 扫描添加 (从在线列表选择)",
-                    "custom_add": "📝 自定义添加 (手动输入/网段)"
-                }
-            },
-            "scan_add": {
-                "title": "选择在线设备",
-                "description": "Include (包含)：只追踪选中的设备。\nExclude (排除)：追踪除了选中设备以外的所有在线设备。",
-                "data": {
-                    "ip_filter_mode": "IP 筛选模式",
-                    "selected_ips": "选择 IP",
-                    "mac_filter_mode": "MAC 筛选模式",
-                    "selected_macs": "选择 MAC"
-                }
-            },
-            "custom_add": {
-                "title": "手动配置规则",
-                "description": "输入 IP/MAC 或选择网段。支持使用 地址#次数:name 格式单独指定缓冲次数及name命名。\n示例：\n192.168.1.5\n192.168.1.6#8 (缓冲8次)\n192.168.1.7#0:MyPC (缓冲0次，即使用全局默认，命名为MyPC)\nAA:BB:CC:DD:EE:FF#3:Phone\n网段格式：192.168.1.0/24#3 (该网段所有IP，缓冲3次)",
-                "data": {
-                    "ip_filter_mode": "IP 筛选模式",
-                    "custom_ips": "IP 输入（逗号或换行分隔）",
-                    "subnet_filter_mode": "网段筛选模式 (仅支持包含)",
-                    "custom_subnets": "网段输入（CIDR格式）",
-                    "mac_filter_mode": "MAC 筛选模式",
-                    "custom_macs": "MAC 输入（逗号或换行分隔）"
-                }
-            },
-            "manage_devices": {
-                "title": "管理设备 (确认列表)",
-                "description": "请确认最终生效的设备列表。\n每个设备下方第一个框为**名称**，第二个框为**掉线缓冲次数**。\n缓冲次数留空或填 0 代表使用全局默认缓冲。\n全局默认缓冲: {global_default} 次",
-                "data": {
-                    "global_default": "全局默认缓冲次数"
-                }
-            }
+  "config": {
+    "step": {
+      "user": {
+        "title": "连接到 iKuai 路由器",
+        "data": {
+          "host": "主机地址 (例如 http://192.168.1.1)",
+          "username": "用户名",
+          "password": "密码",
+          "update_interval_seconds": "扫描间隔 (秒)",
+          "act_buffer": "最大离线重试次数 (缓冲)",
+          "source_mode": "配置模式"
         }
+      },
+      "reauth_confirm": {
+        "title": "身份认证过期",
+        "description": "用户 {username} 的密码已更改或会话失效，请输入新密码。",
+        "data": {
+          "password": "新密码"
+        }
+      },
+     "abort": {
+       "reconfigure_successful": "配置已成功更新"
+     },      
+      "scan_add": {
+        "title": "扫描设备",
+        "description": "从局域网扫描结果中选择您想要追踪的设备。",
+        "data": {
+          "ip_filter_mode": "IP 过滤模式",
+          "selected_ips": "选择 IP 地址",
+          "mac_filter_mode": "MAC 过滤模式",
+          "selected_macs": "选择 MAC 地址"
+        }
+      },
+      "custom_add": {
+        "title": "手动输入设备",
+        "description": "格式: '地址#缓冲:名称' (例如 '192.168.1.100#3:我的手机' 或 'AA:BB:CC:DD:EE:FF:我的电脑')",
+        "data": {
+          "ip_filter_mode": "IP 模式",
+          "custom_ips": "自定义 IP 列表",
+          "subnet_filter_mode": "子网模式",
+          "custom_subnets": "自定义子网 (CIDR 格式)",
+          "mac_filter_mode": "MAC 模式",
+          "custom_macs": "自定义 MAC 列表"
+        }
+      },
+      "manage_devices": {
+        "title": "管理追踪实体",
+        "description": "全局默认缓冲值为 {global_default}。若留空则使用全局默认值。",
+        "data": {
+          "name_": "显示名称",
+          "buffer_": "特定缓冲值"
+        }
+      }
     },
-    "options": {
-        "step": {
-            "init": {
-                "title": "选择操作",
-                "description": "当前为 UI 界面模式。Const 模式切换后需手动重载集成。",
-                "data": {
-                    "update_interval_seconds": "刷新间隔 (秒)",
-                    "default_disconnect_times": "全局默认缓冲 (次)",
-                    "source_mode": "配置模式",
-                    "next_step": "下一步操作"
-                }
-            },
-            "scan_add": {
-                "title": "扫描并追加设备",
-                "description": "选择要追加监控的设备。Include 模式下添加新设备，Exclude 模式下从现有列表中移除。已配置的设备会自动填充。\n{loading_hint}",
-                "data": {
-                    "ip_filter_mode": "IP 筛选模式",
-                    "selected_ips": "选择 IP (支持搜索设备名称)",
-                    "mac_filter_mode": "MAC 筛选模式",
-                    "selected_macs": "选择 MAC (支持搜索设备名称)"
-                }
-            },
-            "custom_add": {
-                "title": "手动追加设备",
-                "description": "输入 IP/MAC 或选择网段。支持使用 地址#次数:name 格式单独指定缓冲次数及name命名。\n示例：\n192.168.1.5\n192.168.1.6#8 (缓冲8次)\n192.168.1.7#0:MyPC (缓冲0次，即使用全局默认，命名为MyPC)\nAA:BB:CC:DD:EE:FF#3:Phone\n网段格式：192.168.1.0/24#3 (该网段所有IP，缓冲3次)",
-                "data": {
-                    "ip_filter_mode": "IP 筛选模式",
-                    "custom_ips": "IP 输入",
-                    "subnet_filter_mode": "网段筛选模式",
-                    "custom_subnets": "网段输入",
-                    "mac_filter_mode": "MAC 筛选模式",
-                    "custom_macs": "MAC 输入"
-                }
-            },
-            "manage_devices": {
-                "title": "管理设备 (修改参数)",
-                "description": "修改已监控设备的名称和缓冲设置。\n第二个输入框留空或填 0 代表使用全局默认缓冲。\n全局默认缓冲: {global_default} 次"
-            },
-            "delete_devices": {
-                "title": "删除设备",
-                "description": "{action}",
-                "data": {
-                    "device_list": "选择要删除的设备"
-                }
-            }
-        }
+    "error": {
+      "cannot_connect": "连接 iKuai 路由器失败，请检查地址",
+      "invalid_auth": "用户名或密码不正确",
+      "interval_too_small": "更新间隔至少需要 5 秒",
+      "invalid_buffer": "缓冲值必须为非负整数",
+      "no_devices_found": "未找到匹配您选择条件的设备",
+      "expected_int": "请输入有效的整数",
+      "invalid_ip_format": "一个或多个 IP 地址格式不正确",
+      "invalid_mac_format": "一个或多个 MAC 地址格式不正确",
+      "unknown": "发生未知错误"
     },
-    "selector": {
-        "config_mode": {
-            "options": {
-                "ui": "UI 界面模式 (推荐)",
-                "const": "Const 代码模式 (仅高级用户)"
-            }
-        },
-        "filter_mode": {
-            "options": {
-                "include": "Include (包含)",
-                "exclude": "Exclude (排除)"
-            }
-        },
-        "action_steps": {
-            "options": {
-                "scan_add": "🚀 扫描并追加设备",
-                "custom_add": "📝 手动并追加设备",
-                "manage_devices": "⚙️ 管理设备 (修改参数)",
-                "delete_devices": "🗑️ 删除设备",
-                "exit": "仅保存全局设置并退出"
-            }
-        }
+    "abort": {
+      "already_configured": "该 iKuai 主机已配置过",
+      "reauth_successful": "重新认证成功"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "iKuai 选项设置",
+        "data": {
+          "update_interval_seconds": "扫描频率 (秒)",
+          "act_buffer": "全局离线缓冲次数",
+          "source_mode": "追踪模式",
+          "next_step": "执行操作"
+        }
+      },
+      "delete_devices": {
+        "title": "移除追踪器",
+        "description": "{action}",
+        "data": {
+          "device_list": "要删除的设备"
+        }
+      }
+    }
+  },
+  "selector": {
+    "config_mode": {
+      "options": {
+        "mode_ui": "UI 动态配置",
+        "mode_const": "手动配置 (通过 const.py)"
+      }
+    },
+    "filter_mode": {
+      "options": {
+        "include": "包含所选",
+        "exclude": "排除所选 (反选模式)"
+      }
+    },
+    "action_steps": {
+      "options": {
+        "scan_add": "扫描并添加新设备",
+        "custom_add": "手动添加新设备",
+        "manage_devices": "修改现有名称/缓冲",
+        "delete_devices": "删除已选追踪器",
+        "exit": "保存并退出"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "uptime": { "name": "启动时长" },
+      "cpu_usage": { "name": "CPU 占用" },
+      "cpu_temperature": { "name": "CPU 温度" },
+      "memory_usage": { "name": "内存占用" },
+      "online_users": { "name": "在线终端数" },
+      "ap_online": { "name": "AP 在线终端数" },
+      "total_upload": { "name": "上传总量" },
+      "total_download": { "name": "下载总量" },
+      "upload_speed": { "name": "上传速度" },
+      "download_speed": { "name": "下载速度" },
+      "connection_count": { "name": "当前连接数" },
+      "ikuai_ip": { "name": "当前设备 IP" },
+      "wan_uptime": { "name": "WAN 联网时长" }
+    },
+    "button": {
+      "restart_router": { "name": "重启路由器" },
+      "reconnect_wan": { "name": "重连 WAN 网络" }
+    },
+    "switch": {
+      "arp_filter": { "name": "非绑定 MAC 上网控制" },
+      "stream_control": { "name": "自动流控模式" },
+      "mac_control": { "name": "MAC 访问控制" }
+    },
+    "device_tracker": {
+      "ikuai_tracker": { "name": "设备追踪" }
+    }
+  }
 }
