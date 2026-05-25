@@ -45,25 +45,38 @@ class IKUAIDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """从 API 抓取并清洗数据."""
         try:
+            # 并发执行所有任务 (注意索引顺序)
             results = await asyncio.gather(
-                self.api.get_system_status(),
-                self.api.get_wan_info(),
-                self.api.get_lan_devices(),
-                self.api.get_mac_acl(),
-                self.api.get_ipv6_lan(),
-                self.api.get_ipv6_wan(),
-                self.api.get_wan_vlan(),
+                self.api.get_system_status(),             # 0
+                self.api.get_wan_info(),                  # 1
+                self.api.call_action(SWITCH_TYPES[0].show_body), # 2: ARP Filter 状态
+                self.api.call_action(SWITCH_TYPES[1].show_body), # 3: Stream Control 状态
+                self.api.get_lan_devices(),               # 4
+                self.api.get_mac_acl(),                   # 5
+                self.api.get_ipv6_lan(),                  # 6
+                self.api.get_ipv6_wan(),                  # 7
+                self.api.get_wan_vlan(),                  # 8
                 return_exceptions=True
             )
 
-            status, wan, lan_list, mac_acl, ipv6_lan, ipv6_wan, vlan_data = results
+            # 严格按照 gather 顺序解包
+            status      = results[0]
+            wan         = results[1]
+            arp_res     = results[2]
+            stream_res  = results[3]
+            lan_list    = results[4]
+            mac_acl     = results[5]
+            ipv6_lan    = results[6]
+            ipv6_wan    = results[7]
+            vlan_data   = results[8]
 
             # 异常检查
             for res in results:
                 if isinstance(res, Exception):
                     if isinstance(res, IkuaiAuthError):
                         raise ConfigEntryAuthFailed from res
-                    raise res
+                    # 记录非致命异常但继续处理
+                    _LOGGER.warning("Partial data fetch error: %s", res)
 
             processed_data: dict[str, Any] = {}
             
@@ -83,7 +96,7 @@ class IKUAIDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                         return raw_val
                 return default
 
-            # --- 1. 基础状态 ---
+            # --- 1. 基础状态数据 ---
             processed_data["ikuai_cpu"] = get_safe_value(sysstat, "cpu", 0)
             processed_data["ikuai_cputemp"] = get_safe_value(sysstat, "cputemp", 0)
             processed_data["ikuai_uptime"] = sysstat.get("uptime", 0)
@@ -98,12 +111,11 @@ class IKUAIDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             processed_data["device_name"] = sysstat.get("hostname", "iKuai Router")
             processed_data["sw_version"] = sysstat.get("verinfo", {}).get("verstring", "Unknown")
 
-            # --- 2. IP 处理 (重点改动) ---
+            # --- 2. IP 处理 ---
             current_wan_ip = "Disconnected"
             processed_data["ikuai_wan_uptime"] = 0
             found_wan_item = None
 
-            # 搜索 IPv4 逻辑
             if isinstance(wan, list):
                 found_wan_item = next((i for i in wan if isinstance(i, dict) and i.get("default_route") == 1 and i.get("ip_addr")), None)
                 if not found_wan_item:
@@ -125,12 +137,11 @@ class IKUAIDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
             processed_data["ikuai_ip"] = current_wan_ip
 
-            # IPv6 提取 (不再作为独立传感器，仅提取值)
+            # IPv6 提取
             lan6_ip = ipv6_lan[0].get("ipv6_addr", "Unknown") if (isinstance(ipv6_lan, list) and ipv6_lan) else "Unknown"
             wan6_ip = ipv6_wan[0].get("dhcp6_ip_addr", "Unknown") if (isinstance(ipv6_wan, list) and ipv6_wan) else "Unknown"
 
-            # --- 3. 属性注入 ---
-            # 合并 IPv6 到 ikuai_ip 的属性中
+            # 属性合并
             ip_attrs = (found_wan_item if found_wan_item else {}).copy()
             ip_attrs.update({
                 "wan_ipv6": wan6_ip,
@@ -138,18 +149,62 @@ class IKUAIDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 "query_time": time.strftime("%Y-%m-%d %H:%M:%S")
             })
             processed_data["ikuai_ip_attrs"] = ip_attrs
-
-            # 其他属性
             processed_data["ikuai_memory_attrs"] = memory
             processed_data["ikuai_online_user_attrs"] = sysstat.get("online_user", {})
             processed_data["ikuai_ap_online_attrs"] = ac_status
 
-            # --- 4. 开关状态 ---
-            static_states = {
-                "ikuai_arp_filter": "on" if sysstat.get("arp_filter") == 1 else "off",
-                "ikuai_stream_control": "on" if sysstat.get("stream_ctl_mode") == 1 else "off"
-            }
+            # --- 3. 开关状态解析 (关键修复逻辑) ---
+            static_states = {}
+
+            def check_is_on(api_res, show_on_def):
+                """通用解析器：兼容 3.0 (Data/data) 和 4.0 (results/key) 结构."""
+                if not api_res or not isinstance(api_res, dict):
+                    return False
+                
+                # 遍历定义的检查条件 (例如 {"stream_ctl_mode": 1})
+                for key, expected_val in show_on_def.items():
+                    target_val = None
+                    
+                    # --- 探测路径 1: 4.0 风格 {"key": [ {"key": val} ]} ---
+                    attr_list = api_res.get(key)
+                    if isinstance(attr_list, list) and len(attr_list) > 0:
+                        target_val = attr_list[0].get(key)
+                    
+                    # --- 探测路径 2: 3.0 风格 {"data": [ {"key": val} ]} ---
+                    if target_val is None:
+                        data_list = api_res.get("data")
+                        if isinstance(data_list, list) and len(data_list) > 0:
+                            target_val = data_list[0].get(key)
+
+                    # --- 探测路径 3: 扁平风格 {"key": val} ---
+                    if target_val is None:
+                        target_val = api_res.get(key)
+
+                    # --- 比对逻辑 ---
+                    # 转换成字符串比对，确保数字 1 和 字符串 "1" 都能通过
+                    if target_val is None or str(target_val) != str(expected_val):
+                        return False
+                        
+                return True
+
+            # 解析内置开关
+            # 1. 先用通用解析器从 action 结果里找
+            static_states["ikuai_arp_filter"] = "on" if check_is_on(arp_res, SWITCH_TYPES[0].show_on) else "off"
+            static_states["ikuai_stream_control"] = "on" if check_is_on(stream_res, SWITCH_TYPES[1].show_on) else "off"
+
+            # 2. 如果没对上，用 sysstat 里的原始字段强制纠正 (3.0 版本的强项)
+            sysstat = (status or {}).get("sysstat", {})
+            if static_states["ikuai_arp_filter"] == "off" and str(sysstat.get("arp_filter")) == "1":
+                static_states["ikuai_arp_filter"] = "on"
+            if static_states["ikuai_stream_control"] == "off" and str(sysstat.get("stream_ctl_mode")) == "1":
+                static_states["ikuai_stream_control"] = "on"
+
             processed_data["static_switches"] = static_states
+
+            # --- 4. 辅助数据映射 (用于 MAC 控制) ---
+            processed_data["mac_control_map"] = {
+                str(item["id"]): item for item in (mac_acl if isinstance(mac_acl, list) else []) if "id" in item
+            }
 
             # --- 5. Device Tracker ---
             processed_data["tracker_map"] = {}
@@ -189,12 +244,15 @@ class IKUAIDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
 
     async def async_control_device(self, action_body: dict[str, Any]) -> None:
+        """执行动作并触发延迟刷新."""
         try:
             await self.api.call_action(action_body)
+            # 立即触发本地数据“乐观更新”虽在 switch 逻辑，这里手动触发全局刷新确保最终状态一致
             self.hass.async_create_task(self._async_delay_refresh())
         except Exception as err:
             _LOGGER.error("Failed to execute iKuai action: %s", err)
 
     async def _async_delay_refresh(self) -> None:
-        await asyncio.sleep(1)
+        """操作后等待爱快后台更新，再抓取最新状态."""
+        await asyncio.sleep(1.5)
         await self.async_refresh()
