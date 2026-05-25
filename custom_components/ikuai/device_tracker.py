@@ -1,6 +1,7 @@
 """Support for iKuai device tracker entities."""
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from homeassistant.components.device_tracker import ScannerEntity, SourceType
@@ -8,16 +9,21 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import DOMAIN, CONF_TRACKER_CONFIG
 from .coordinator import IKUAIDataUpdateCoordinator
 
-async def async_setup_entry(hass, entry, async_add_entities) -> None:
-    coordinator = entry.runtime_data
+_LOGGER = logging.getLogger(__name__)
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback) -> None:
+    """Set up iKuai device tracker."""
+    coordinator: IKUAIDataUpdateCoordinator = entry.runtime_data
     
-    # 原代码逻辑：如果模式是 MODE_CONST，尝试加载 const.py 中的 DEVICE_TRACKERS
-    tracker_config = entry.data.get(CONF_TRACKER_CONFIG, {})
+    # 获取已配置的追踪列表
+    tracker_config = dict(entry.data.get(CONF_TRACKER_CONFIG, {}))
     
+    # 兼容模式：MODE_CONST 逻辑
     if entry.data.get("source_mode") == "mode_const":
         try:
             from .const import DEVICE_TRACKERS
@@ -29,10 +35,15 @@ async def async_setup_entry(hass, entry, async_add_entities) -> None:
                         "buffer": info.get("disconnect_refresh_times", 2)
                     }
         except ImportError:
-            _LOGGER.warning("DEVICE_TRACKERS not found in const.py")
+            _LOGGER.debug("DEVICE_TRACKERS not found in const.py")
 
-    async_add_entities(IkuaiTracker(coordinator, tid, conf) for tid, conf in tracker_config.items())
-    
+    if not tracker_config:
+        return
+
+    async_add_entities(
+        IkuaiTracker(coordinator, tid, conf) 
+        for tid, conf in tracker_config.items()
+    )
     
 class IkuaiTracker(CoordinatorEntity[IKUAIDataUpdateCoordinator], ScannerEntity):
     """iKuai 设备追踪器."""
@@ -43,9 +54,19 @@ class IkuaiTracker(CoordinatorEntity[IKUAIDataUpdateCoordinator], ScannerEntity)
     def __init__(self, coordinator, target_id, info) -> None:
         super().__init__(coordinator)
         self._target_id = target_id
-        self._attr_name = info.get("name")
-        self._attr_unique_id = f"{DOMAIN}_tracker_{target_id}_{coordinator.host}"
-        self._attr_device_info = coordinator.device_info
+        
+        # 获取实时数据中的名称
+        data = coordinator.data.get("tracker_map", {}).get(target_id, {})
+        # 优先使用实时抓到的 friendly_name，如果没有则使用配置时的名称
+        self._attr_name = data.get("friendly_name") or info.get("name") or target_id
+        # 唯一 ID
+        self._attr_unique_id = f"{DOMAIN}_tracker_{target_id.replace(':', '_')}_{coordinator.host}"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """将实体链接到 iKuai 路由器设备."""
+        # 必须直接返回协调器定义的 device_info，确保标识符一致
+        return self.coordinator.device_info
 
     @property
     def source_type(self) -> SourceType:
@@ -54,13 +75,27 @@ class IkuaiTracker(CoordinatorEntity[IKUAIDataUpdateCoordinator], ScannerEntity)
 
     @property
     def is_connected(self) -> bool:
-        """判断设备是否在线（包含缓冲逻辑）."""
-        # 只要存在于 map 中，即视为在线（Coordinator 已处理缓冲逻辑）
+        """判断设备是否在线."""
+        # 从协调器处理好的 map 中查看是否存在
         return self._target_id in self.coordinator.data.get("tracker_map", {})
 
     @property
+    def ip_address(self) -> str | None:
+        """返回当前 IP."""
+        data = self.coordinator.data.get("tracker_map", {}).get(self._target_id, {})
+        return data.get("ip_addr")
+
+    @property
+    def mac_address(self) -> str | None:
+        """返回当前 MAC."""
+        if ":" in self._target_id:
+            return self._target_id
+        data = self.coordinator.data.get("tracker_map", {}).get(self._target_id, {})
+        return data.get("mac")
+
+    @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """返回设备详细信息."""
+        """返回详细属性."""
         data = self.coordinator.data.get("tracker_map", {}).get(self._target_id, {})
         if not data:
             return {}
@@ -68,7 +103,8 @@ class IkuaiTracker(CoordinatorEntity[IKUAIDataUpdateCoordinator], ScannerEntity)
         return {
             "ip_address": data.get("ip_addr"),
             "mac_address": data.get("mac"),
+            "device_name": data.get("friendly_name"), # 这里就是我们要的名称
+            "hostname": data.get("hostname"),
             "upload_speed": f"{data.get('upload', 0)} KB/s",
             "download_speed": f"{data.get('download', 0)} KB/s",
-            "is_buffering": data.get("offline_buffering", False)
         }

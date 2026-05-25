@@ -46,34 +46,37 @@ class IkuaiAPI:
         self._passwd_base64 = passwd_base64
         self._session: ClientSession = async_get_clientsession(hass, verify_ssl=False)
         self._sess_key: str | None = None
+        self._semaphore = asyncio.Semaphore(3)  # 限制并发请求数，避免过载
 
     async def _async_request(self, url: str, body: dict[str, Any], headers: dict | None = None) -> Any:
         """核心请求方法：增加多编码探测以兼容 iKuai 3.0 的 GBK 编码."""
-        try:
-            async with asyncio.timeout(15):
-                async with self._session.post(url, json=body, headers=headers) as response:
-                    if response.status != 200:
-                        _LOGGER.error("iKuai returned status %s", response.status)
+        async with self._semaphore: 
+            try:
+                await asyncio.sleep(0.05)  # 小延迟，避免过快连续请求导致 iKuai 连接重置
+                async with asyncio.timeout(15):  # 增加超时保护
+                    async with self._session.post(url, json=body, headers=headers) as response:
+                        if response.status != 200:
+                            _LOGGER.error("iKuai returned status %s", response.status)
+                            return None
+                        
+                        # 关键逻辑：读取原始字节流并尝试解码
+                        content = await response.read()
+                        
+                        # 尝试编码顺序：UTF-8 (4.0默认) -> GBK (3.0常用) -> GB18030 (保底)
+                        for encoding in ["utf-8", "gbk", "gb18030"]:
+                            try:
+                                text = content.decode(encoding)
+                                return json.loads(text), response.cookies
+                            except (UnicodeDecodeError, ValueError):
+                                continue
+                        
+                        _LOGGER.error("Failed to decode iKuai response with known encodings")
                         return None
-                    
-                    # 关键逻辑：读取原始字节流并尝试解码
-                    content = await response.read()
-                    
-                    # 尝试编码顺序：UTF-8 (4.0默认) -> GBK (3.0常用) -> GB18030 (保底)
-                    for encoding in ["utf-8", "gbk", "gb18030"]:
-                        try:
-                            text = content.decode(encoding)
-                            return json.loads(text), response.cookies
-                        except (UnicodeDecodeError, ValueError):
-                            continue
-                    
-                    _LOGGER.error("Failed to decode iKuai response with known encodings")
-                    return None
-        except (asyncio.TimeoutError, ClientResponseError) as err:
-            raise IkuaiConnectionError(f"Connection to iKuai failed: {err}") from err
-        except Exception as err:
-            _LOGGER.error("Unexpected error during iKuai request: %s", err)
-            return None
+            except (asyncio.TimeoutError, ClientResponseError) as err:
+                raise IkuaiConnectionError(f"Connection to iKuai failed: {err}") from err
+            except Exception as err:
+                _LOGGER.error("Unexpected error during iKuai request: %s", err)
+                return None
 
     async def login(self) -> str:
         """登录 iKuai 并获取 sess_key."""
