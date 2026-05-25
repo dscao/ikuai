@@ -54,7 +54,7 @@ class IkuaiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user", 
             data_schema=vol.Schema({
-                vol.Required(CONF_HOST, default="http://10.10.10.1"): str,
+                vol.Required(CONF_HOST, default="http://192.168.1.1"): str,
                 vol.Required(CONF_USERNAME, default="admin"): str,
                 vol.Required(CONF_PASSWORD): TextSelector(
                     TextSelectorConfig(type=TextSelectorType.PASSWORD)
