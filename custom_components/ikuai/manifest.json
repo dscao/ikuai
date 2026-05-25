@@ -10,7 +10,7 @@
   "issue_tracker": "https://github.com/dscao/ikuai/issues",
   "logins": [],
   "requirements": [],
-  "version": "2026.2.13",
+  "version": "2026.5.25",
   "dhcp": [
     { "hostname": "ikuai*", "macaddress": "8446FE*" },
     { "hostname": "ikuai*", "macaddress": "001018*" }
