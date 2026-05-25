@@ -68,8 +68,8 @@ SENSOR_TYPES: Final[tuple[IkuaiSensorEntityDescription, ...]] = (
         name="Uptime",
         translation_key="uptime",
         icon="mdi:clock-time-eight",
-        # device_class=SensorDeviceClass.DURATION,
-        native_unit_of_measurement=UnitOfTime.DAYS,
+        device_class=SensorDeviceClass.DURATION,
+        native_unit_of_measurement=UnitOfTime.SECONDS,
         state_class=SensorStateClass.MEASUREMENT,
     ),
     IkuaiSensorEntityDescription(
