@@ -1,181 +1,122 @@
-"""IKUAI Entities"""
-import logging
-import asyncio
+"""Support for iKuai switch entities."""
+from __future__ import annotations
 
-from homeassistant.components.switch import (
-    SwitchEntity,
-)
-from .const import (
-    COORDINATOR, DOMAIN, CONF_HOST, CONF_USERNAME, CONF_PASSWD, CONF_PASS, SWITCH_TYPES, CONF_CUSTOM_SWITCHES
-)
+import time
+from typing import Any
+from homeassistant.components.switch import SwitchEntity
+from homeassistant.core import callback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-_LOGGER = logging.getLogger(__name__)
+from .const import DOMAIN, SWITCH_TYPES, IkuaiSwitchEntityDescription
+from .coordinator import IKUAIDataUpdateCoordinator
 
-async def async_setup_entry(hass, config_entry, async_add_entities):
-    """Set up iKuai switch entities from a config entry."""
-    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
-    
-    switchs = []
-    
-    if SWITCH_TYPES:
-        for switch in SWITCH_TYPES:
-            switchs.append(IKUAISwitch(hass, switch, coordinator,is_custom=False))
-            
-    custom_switches_config = hass.data[DOMAIN].get("custom_switches", {})
-    if custom_switches_config:
-        _LOGGER.debug("setup custom switches")
-        for switch_key, switch_config in custom_switches_config.items():
-            switchs.append(IKUAISwitch(hass, switch_key, coordinator, is_custom=True, custom_config=switch_config))
-            _LOGGER.debug(switch_config["name"])
+async def async_setup_entry(hass, entry, async_add_entities) -> None:
+    """Set up iKuai switches."""
+    coordinator: IKUAIDataUpdateCoordinator = entry.runtime_data
+    entities = []
 
-    if coordinator.data.get("mac_control"):
-        listmacdata = coordinator.data.get("mac_control")
-        if isinstance(listmacdata, list):
-            for mac in listmacdata:
-                switchs.append(IKUAISwitchmac(hass, coordinator, mac["id"]))
-    
-    async_add_entities(switchs, False)
+    for desc in SWITCH_TYPES:
+        entities.append(IkuaiStaticSwitch(coordinator, desc))
 
-class IKUAIBaseSwitch(SwitchEntity):
-    """Base class for iKuai switches."""
+    mac_controls = coordinator.data.get("mac_control_map", {})
+    for mac_id in mac_controls:
+        entities.append(IkuaiMacControlSwitch(coordinator, mac_id))
+
+    async_add_entities(entities)
+
+class IkuaiStaticSwitch(CoordinatorEntity[IKUAIDataUpdateCoordinator], SwitchEntity):
+    """实现内置及自定义功能开关 (带状态保护)."""
     _attr_has_entity_name = True
 
-    def __init__(self, hass, coordinator):
-        """Initialize the base switch."""
-        super().__init__()
-        self.coordinator = coordinator
-        self._hass = hass
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self.coordinator.host)},
-            "name": self.coordinator.data["device_name"],
-            "manufacturer": "iKuai",
-            "model": "iKuai Router",
-            "sw_version": self.coordinator.data["sw_version"],
-        }
-
-    async def async_added_to_hass(self):
-        """Handle entity which will be added."""
-        self.async_on_remove(
-            self.coordinator.async_add_listener(self.async_write_ha_state)
-        )
-
-class IKUAISwitch(IKUAIBaseSwitch):
-    """Define a static iKuai switch entity."""
-
-    def __init__(self, hass, kind, coordinator,is_custom=False, custom_config=None):
-        """Initialize the switch."""
-        super().__init__(hass, coordinator)
-        self.kind = kind
+    def __init__(self, coordinator, description) -> None:
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._attr_unique_id = f"{DOMAIN}_{description.key}_{coordinator.host}"
+        self._attr_device_info = coordinator.device_info
         
-        # Set properties based on whether it's custom or built-in
-        if is_custom and custom_config:
-            self._attr_icon = custom_config.get('icon', 'mdi:toggle-switch')
-            self._name = custom_config['name']
-            self._turn_on_body = custom_config['turn_on_body']
-            self._turn_off_body = custom_config['turn_off_body']
-        else:
-            self._attr_icon = SWITCH_TYPES[self.kind]['icon']
-            self._name = SWITCH_TYPES[self.kind]['name']
-            self._turn_on_body = SWITCH_TYPES[self.kind]['turn_on_body']
-            self._turn_off_body = SWITCH_TYPES[self.kind]['turn_off_body']
+        # 状态保护变量
+        self._last_action_time = 0
+        self._pending_state = None
+
+    @property
+    def is_on(self) -> bool:
+        # 如果距离上次操作不足 5 秒，返回点击时的状态，不看协调器的数据
+        if time.time() - self._last_action_time < 5:
+            return self._pending_state == "on"
+            
+        states = self.coordinator.data.get("static_switches", {})
+        return states.get(self.entity_description.key) == "on"
+
+    async def async_turn_on(self, **kwargs) -> None:
+        """打开开关."""
+        self._last_action_time = time.time()
+        self._pending_state = "on"
+        self.async_write_ha_state() # 立即刷新 UI
         
+        await self.coordinator.async_control_device(self.entity_description.turn_on_body)
 
-    @property
-    def name(self):
-        """Return the name of the switch."""
-        return self._name
-
-    @property
-    def unique_id(self):
-        """Return a unique ID for this entity."""
-        return f"{DOMAIN}_{self.kind}_{self.coordinator.host}"
-
-    @property
-    def icon(self):
-        """Return the icon of the switch."""
-        return self._attr_icon
-
-    @property
-    def is_on(self):
-        """Return true if switch is on based on coordinator data."""
-        if self.coordinator.data.get("switch"):
-            for item in self.coordinator.data["switch"]:
-                if item['name'] == self._name:
-                    return item['onoff'] == "on"
-        return False
-
-    async def async_turn_on(self, **kwargs):
-        """Turn the switch on."""
-        await self.coordinator.async_control_device(self._turn_on_body)
-        await self.coordinator.async_request_refresh()
-
-    async def async_turn_off(self, **kwargs):
-        """Turn the switch off."""
-        await self.coordinator.async_control_device(self._turn_off_body)
-        await self.coordinator.async_request_refresh()
-
-class IKUAISwitchmac(IKUAIBaseSwitch):
-    """Define an iKuai MAC access control switch entity."""
-
-    def __init__(self, hass, coordinator, macid):
-        """Initialize the MAC control switch."""
-        super().__init__(hass, coordinator)      
-        self._macid = macid
-        self._attr_icon = "mdi:network-pos"
-        self._attr_device_class = "switch"
-        self._update_from_coordinator()
+    async def async_turn_off(self, **kwargs) -> None:
+        """关闭开关."""
+        self._last_action_time = time.time()
+        self._pending_state = "off"
+        self.async_write_ha_state()
         
-    def _update_from_coordinator(self):
-        """Update the internal state from coordinator data."""
-        listmacswitch = self.coordinator.data.get("mac_control")
-        if isinstance(listmacswitch, list):
-            for macswitch in listmacswitch:
-                if macswitch["id"] == self._macid:
-                    self._mac_address = macswitch["mac"]
-                    self._mac = str(self._mac_address).replace(":","")
-                    
-                    if macswitch.get("comment"):
-                        self._name = f"Mac_control_{self._mac[-6:]}({macswitch['comment']})"
-                    else:
-                        self._name = f"Mac_control_{self._mac[-6:]}(未备注)"
-                    
-                    self._is_on = macswitch["enabled"] == "yes"
-                    break
+        await self.coordinator.async_control_device(self.entity_description.turn_off_body)
+
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        # 当协调器更新时，只有不在保护期内才强制刷新 UI
+        if time.time() - self._last_action_time >= 5:
+            super()._handle_coordinator_update()
+
+class IkuaiMacControlSwitch(CoordinatorEntity[IKUAIDataUpdateCoordinator], SwitchEntity):
+    """动态 MAC 控制开关 (同样加入状态保护)."""
+    _attr_has_entity_name = True
+
+    def __init__(self, coordinator, description, mac_id) -> None:
+        super().__init__(coordinator)
+        self.entity_description = description
+        self._mac_id = str(mac_id)
+        self._attr_device_info = coordinator.device_info
+        self._last_action_time = 0
+        self._pending_on = False
+        self._update_attr()
+
+    def _update_attr(self, description):
+        item = self.coordinator.data.get("mac_control_map", {}).get(self._mac_id, {})
+        comment = item.get("comment") or "未备注"
+        mac_addr = item.get("mac", "Unknown")
+        self._attr_name = f"MAC访问控制: {comment} ({mac_addr})"
+        self._attr_unique_id = f"{DOMAIN}_mac_ctrl_{self._mac_id}_{self.coordinator.host}"
+        self._attr_translation_key = description.translation_key
 
     @property
-    def name(self):
-        """Return the name of the switch."""
-        return self._name
+    def is_on(self) -> bool:
+        # 保护期延长至 15 秒，确保跨越 1.5 个轮询周期
+        if time.time() - self._last_action_time < 15:
+            return self._pending_state == "on"
+            
+        states = self.coordinator.data.get("static_switches", {})
+        return states.get(self.entity_description.key) == "on"
 
-    @property
-    def unique_id(self):
-        """Return a unique ID for this entity."""
-        return f"{DOMAIN}_switch_{self.coordinator.host}_{self._mac}"
+    async def async_turn_on(self, **kwargs) -> None:
+        self._last_action_time = time.time()
+        self._pending_on = True
+        self.async_write_ha_state()
+        
+        body = {"func_name": "acl_mac", "action": "up", "param": {"id": self._mac_id}}
+        await self.coordinator.async_control_device(body)
 
-    @property
-    def is_on(self):
-        """Return true if the MAC control is enabled."""
-        return self._is_on
+    async def async_turn_off(self, **kwargs) -> None:
+        self._last_action_time = time.time()
+        self._pending_on = False
+        self.async_write_ha_state()
+        
+        body = {"func_name": "acl_mac", "action": "down", "param": {"id": self._mac_id}}
+        await self.coordinator.async_control_device(body)
 
-    @property
-    def extra_state_attributes(self):
-        """Return the state attributes."""
-        return {
-            "mac_address": getattr(self, "_mac_address", None)
-        }
-
-    async def async_turn_on(self, **kwargs):
-        """Turn the MAC control switch on."""
-        mac_json_body = {"func_name":"acl_mac","action":"up","param":{"id":str(self._macid)}}
-        await self.coordinator.async_control_device(mac_json_body) 
-        await self.coordinator.async_request_refresh()
-
-    async def async_turn_off(self, **kwargs):
-        """Turn the MAC control switch off."""
-        mac_json_body = {"func_name":"acl_mac","action":"down","param":{"id":str(self._macid)}}
-        await self.coordinator.async_control_device(mac_json_body)
-        await self.coordinator.async_request_refresh()
-
-    async def async_update(self):
-        """Update the entity state."""
-        self._update_from_coordinator()
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        if time.time() - self._last_action_time >= 5:
+            self._update_attr()
+            super()._handle_coordinator_update()

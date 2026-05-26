@@ -1,40 +1,28 @@
-"""The ikuai integration."""
+"""The iKuai integration."""
 from __future__ import annotations
-from async_timeout import timeout
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
-from homeassistant.core_config import Config
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from .data_fetcher import DataFetcher
-from .const import (
-    DOMAIN,
-    CONF_USERNAME,
-    CONF_PASSWD,
-    CONF_PASS,
-    CONF_HOST,    
-    CONF_UPDATE_INTERVAL,
-    COORDINATOR,
-    UNDO_UPDATE_LISTENER,
-    CONF_TRACKER_CONFIG,
-    CONF_SOURCE_MODE, 
-    MODE_CONST,
-    CONF_CUSTOM_SWITCHES,
-)
-from homeassistant.exceptions import ConfigEntryNotReady
-import voluptuous as vol
-import homeassistant.helpers.config_validation as cv
-import time
-import datetime
+
 import logging
-import asyncio
+import voluptuous as vol
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST, CONF_USERNAME, Platform
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
+import homeassistant.helpers.config_validation as cv
+
+from .api import IkuaiAPI
+from .const import (
+    DOMAIN, 
+    PLATFORMS, 
+    CONF_PASS, 
+    CONF_UPDATE_INTERVAL, 
+    CONF_CUSTOM_SWITCHES,
+    CONF_TRACKER_CONFIG
+)
+from .coordinator import IKUAIDataUpdateCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = [Platform.SENSOR, Platform.BUTTON, Platform.SWITCH, Platform.DEVICE_TRACKER]
-
-
-# Configuration schema for custom switches
+# 定义 YAML Schema 以支持原有的自定义开关功能
 CUSTOM_SWITCH_SCHEMA = vol.Schema({
     vol.Required("label"): cv.string,
     vol.Required("name"): cv.string,
@@ -46,7 +34,6 @@ CUSTOM_SWITCH_SCHEMA = vol.Schema({
     vol.Optional("show_off"): dict,
 })
 
-# Configuration schema for the domain
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
         vol.Optional(CONF_CUSTOM_SWITCHES, default={}): vol.Schema({
@@ -55,154 +42,76 @@ CONFIG_SCHEMA = vol.Schema({
     })
 }, extra=vol.ALLOW_EXTRA)
 
+type IkuaiConfigEntry = ConfigEntry[IKUAIDataUpdateCoordinator]
 
-async def async_setup(hass: HomeAssistant, config: Config) -> bool:
-    """Set up the iKuai component."""
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the iKuai component from YAML."""
     hass.data.setdefault(DOMAIN, {})
-        
-    # Get configuration from configuration.yaml
     conf = config.get(DOMAIN, {})
-    custom_switches_config = conf.get(CONF_CUSTOM_SWITCHES, {})
-    
-    if custom_switches_config:
-        _LOGGER.info("Loaded %d custom switches from configuration.yaml", len(custom_switches_config))
-    else:
-        _LOGGER.info("No custom switches configured in configuration.yaml.")
-    # Store the configurations in hass.data
-    hass.data[DOMAIN]["custom_switches"] = custom_switches_config
+    hass.data[DOMAIN][CONF_CUSTOM_SWITCHES] = conf.get(CONF_CUSTOM_SWITCHES, {})
     return True
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: IkuaiConfigEntry) -> bool:
     """Set up iKuai from a config entry."""
-    host = entry.data[CONF_HOST]
-    username = entry.data[CONF_USERNAME]
-    passwd = entry.data[CONF_PASSWD]
-    pas = entry.data[CONF_PASS]
-    update_interval_seconds = entry.options.get(CONF_UPDATE_INTERVAL, 10)
     
-    if entry.data.get(CONF_SOURCE_MODE) == MODE_CONST:
-        try:
-            from .const import DEVICE_TRACKERS
-            tracker_config = {}
-            for key, info in DEVICE_TRACKERS.items():
-                target = info.get("mac_address") or info.get("ip_address")
-                if target:
-                    tracker_config[target] = {
-                        "name": info.get("name", key),
-                        "buffer": info.get("disconnect_refresh_times", 2),
-                        "mac_address": info.get("mac_address"),
-                        "ip_address": info.get("ip_address")
-                    }
-        except ImportError:
-            _LOGGER.warning("DEVICE_TRACKERS not found in const.py, skipping tracker setup")
-            tracker_config = {}
-    else:
-        tracker_config = entry.data.get(CONF_TRACKER_CONFIG, {})
-        
-    custom_switches_config = hass.data[DOMAIN].get("custom_switches", {})
-
-    coordinator = IKUAIDataUpdateCoordinator(hass, host, username, passwd, pas, update_interval_seconds, tracker_config, custom_switches_config)
-    await coordinator.async_refresh()
-
-    if not coordinator.last_update_success:
-        raise ConfigEntryNotReady
-
-    undo_listener = entry.add_update_listener(update_listener)
-
-    hass.data[DOMAIN][entry.entry_id] = {
-        COORDINATOR: coordinator,
-        UNDO_UPDATE_LISTENER: undo_listener,
-    }
-
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    return True
-
-async def async_unload_entry(hass, entry):
-    """Unload a config entry."""
-    unload_ok = all(
-        await asyncio.gather(
-            *[
-                hass.config_entries.async_forward_entry_unload(entry, component)
-                for component in PLATFORMS
-            ]
-        )
+    # 1. 初始化 API
+    api = IkuaiAPI(
+        hass,
+        host=entry.data[CONF_HOST],
+        username=entry.data[CONF_USERNAME],
+        passwd_md5=entry.data.get("passwd"),
+        passwd_base64=entry.data.get(CONF_PASS),
     )
 
-    hass.data[DOMAIN][entry.entry_id][UNDO_UPDATE_LISTENER]()
+    # 2. 初始化协调器
+    yaml_custom_switches = hass.data.get(DOMAIN, {}).get(CONF_CUSTOM_SWITCHES, {})
+    coordinator = IKUAIDataUpdateCoordinator(
+        hass,
+        api,
+        host=entry.data[CONF_HOST],
+        update_interval=entry.options.get(CONF_UPDATE_INTERVAL, entry.data.get(CONF_UPDATE_INTERVAL, 10)),
+    )
+    coordinator.yaml_custom_switches = yaml_custom_switches
+    
+    await coordinator.async_config_entry_first_refresh()
+    entry.runtime_data = coordinator
 
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+    # --- 核心更新：自动清理已移除的追踪实体 (幽灵清理) ---
+    entity_registry = er.async_get(hass)
+    
+    # 获取当前配置中允许存在的 Tracker MAC 地址列表
+    conf_trackers = entry.data.get(CONF_TRACKER_CONFIG, {})
+    host = entry.data.get(CONF_HOST)
+    
+    # 生成当前合法的 Unique ID 集合，用于对比
+    # 逻辑必须与 device_tracker.py 中的拼接规则完全一致
+    valid_tracker_unique_ids = [
+        f"{DOMAIN}_tracker_{mac.replace(':', '_')}_{host}"
+        for mac in conf_trackers
+    ]
 
-    return unload_ok
+    # 获取该集成下已注册的所有实体
+    existing_entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+    
+    for ent in existing_entities:
+        # 我们只清理设备追踪平台 (device_tracker) 的实体
+        if ent.domain == Platform.DEVICE_TRACKER:
+            # 如果已注册的实体不在当前合法列表中，说明它已被用户移除
+            if ent.unique_id not in valid_tracker_unique_ids:
+                _LOGGER.info("检测到已移除的追踪配置，正在清理幽灵实体: %s", ent.entity_id)
+                entity_registry.async_remove(ent.entity_id)
+    # --------------------------------------------------
 
-async def update_listener(hass, entry):
-    """Handle options update."""
+    # 3. 设置平台
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    entry.async_on_unload(entry.add_update_listener(update_listener))
+
+    return True
+
+async def update_listener(hass: HomeAssistant, entry: IkuaiConfigEntry) -> None:
+    """监听选项更新."""
     await hass.config_entries.async_reload(entry.entry_id)
 
-class IKUAIDataUpdateCoordinator(DataUpdateCoordinator):
-    """Class to manage fetching iKuai data."""
-
-    def __init__(self, hass, host, username, passwd, pas, update_interval_seconds, tracker_config, custom_switches_config):
-        """Initialize the coordinator."""
-        update_interval = datetime.timedelta(seconds=update_interval_seconds)
-        _LOGGER.debug("%s Data will be update every %s", host, update_interval)
-        self._token = ""
-        self._token_expire_time = 0
-        self._allow_login = True
-    
-        super().__init__(hass, _LOGGER, name=DOMAIN, update_interval=update_interval)
-
-        self._fetcher = DataFetcher(hass, host, username, passwd, pas, tracker_config, custom_switches_config)
-        self.host = host
-        
-    async def get_access_token(self):
-        """Get or refresh the access token."""
-        if time.time() < self._token_expire_time:
-            return self._token
-        else:
-            if self._allow_login == True:
-                self._token = await self._fetcher._login_ikuai()
-                if not isinstance(self._token, str):
-                    if self._token == 10001:
-                        self._allow_login = False
-                    return None
-                    
-                self._token_expire_time = time.time() + 60*60*2          
-                return self._token
-            else:
-                _LOGGER.error("The username or password has been incorrect, please reconfigure the ikuai integration.")
-                return
-
-    async def _async_update_data(self):
-        """Update data via DataFetcher."""
-        _LOGGER.debug("token_expire_time=%s", self._token_expire_time)
-        if self._allow_login == True:
-            sess_key = await self.get_access_token()
-            if not sess_key:
-                raise UpdateFailed("Failed to get access token")
-            
-            _LOGGER.debug(sess_key) 
-
-            try:
-                async with timeout(60):
-                    data = await self._fetcher.get_data(sess_key)
-                    if data == 401:
-                        self._token_expire_time = 0
-                        return
-                    if not data:
-                        raise UpdateFailed("failed in getting data")
-                    return data
-            except Exception as error:
-                raise UpdateFailed(error) from error
-
-    async def async_control_device(self, action_body):
-        """Execute action for iKuai devices."""
-        if self._allow_login:
-            sess_key = await self.get_access_token()
-            if not sess_key:
-                return
-            result = await self._fetcher.async_execute_action(sess_key, action_body)
-            if result == 401:
-                self._token_expire_time = 0
-            return result
+async def async_unload_entry(hass: HomeAssistant, entry: IkuaiConfigEntry) -> bool:
+    """卸载集成."""
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

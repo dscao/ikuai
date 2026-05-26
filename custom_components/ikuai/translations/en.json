@@ -1,139 +1,141 @@
 {
-    "config": {
-        "abort": {
-            "already_configured": "Device is already configured"
-        },
-        "error": {
-            "cannot_connect": "Failed to connect",
-            "invalid_auth": "Invalid authentication",
-            "invalid_ip_format": "Invalid IP format (e.g., 192.168.1.1)",
-            "invalid_subnet_format": "Invalid subnet format (e.g., 192.168.1.0/24)",
-            "invalid_mac_format": "Invalid MAC format (e.g., AA:BB:CC:DD:EE:FF)",
-            "no_devices_found": "No valid devices found, or empty list in exclude mode",
-            "unknown": "Unexpected error",
-            "login_timeout": "Login timeout, please check network connection",
-            "invalid_buffer": "Value must be at least 1",
-            "interval_too_small": "Update interval must be at least 5 seconds",
-            "expected_int": "Please enter a valid integer"
-        },
-        "step": {
-            "user": {
-                "title": "Connect to iKuai Router",
-                "data": {
-                    "host": "Host URL (e.g., http://192.168.1.1)",
-                    "username": "Username",
-                    "password": "Password",
-                    "update_interval_seconds": "Global Update Interval (seconds)",
-                    "default_disconnect_times": "Global Default Buffer (times)",
-                    "source_mode": "Configuration Mode (Const mode requires restart)"
-                }
-            },
-            "menu": {
-                "title": "Select Device Addition Method",
-                "menu_options": {
-                    "scan_add": " Scan & Add (From Online Devices)",
-                    "custom_add": " Custom Add (Manual Input/Subnet)"
-                }
-            },
-            "scan_add": {
-                "title": "Select Online Devices",
-                "description": "Include: Monitor only selected devices.\nExclude: Monitor all online devices except the selected ones.",
-                "data": {
-                    "ip_filter_mode": "IP Filter Mode",
-                    "selected_ips": "Select IP Addresses",
-                    "mac_filter_mode": "MAC Filter Mode",
-                    "selected_macs": "Select MAC Addresses"
-                }
-            },
-            "custom_add": {
-                "title": "Custom Configuration Rules",
-                "description": "Enter IP/MAC or select Subnets. Supports 'Address#Buffer:Name' format to specify buffer and name individually.\nExamples:\n192.168.1.5\n192.168.1.6#8 (buffer 8 times)\n192.168.1.7#0:MyPC (buffer 0 means use global default, name MyPC)\nAA:BB:CC:DD:EE:FF#3:Phone\nSubnet: 192.168.1.0/24#3 (All IPs in subnet, buffer 3 times)",
-                "data": {
-                    "ip_filter_mode": "IP Filter Mode",
-                    "custom_ips": "IP Input (comma or newline separated)",
-                    "subnet_filter_mode": "Subnet Filter Mode (Include only)",
-                    "custom_subnets": "Subnet Input (CIDR format)",
-                    "mac_filter_mode": "MAC Filter Mode",
-                    "custom_macs": "MAC Input (comma or newline separated)"
-                }
-            },
-            "manage_devices": {
-                "title": "Manage Devices (Confirm List)",
-                "description": "Confirm the final device list.\nThe first box is for **Name**, the second for **Disconnect Buffer**.\nLeave buffer empty or set to 0 to use the global default.\nGlobal default buffer: {global_default} times",
-                "data": {
-                    "global_default": "Global Default Buffer Times"
-                }
-            }
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to iKuai Router",
+        "data": {
+          "host": "Host (e.g., http://192.168.1.1)",
+          "username": "Username",
+          "password": "Password",
+          "update_interval_seconds": "Scan Interval (Seconds)",
+          "act_buffer": "Max Offline Retries (Buffer)",
+          "source_mode": "Configuration Mode"
         }
+      },
+      "reauth_confirm": {
+        "title": "Authentication Expired",
+        "description": "The password for {username} has changed or the session is invalid. Please enter the new password.",
+        "data": {
+          "password": "New Password"
+        }
+      },
+      "scan_add": {
+        "title": "Scan Devices",
+        "description": "Select the devices you want to track from the LAN scan result.",
+        "data": {
+          "ip_filter_mode": "IP Filter Mode",
+          "selected_ips": "Select IPs",
+          "mac_filter_mode": "MAC Filter Mode",
+          "selected_macs": "Select MACs"
+        }
+      },
+      "custom_add": {
+        "title": "Manual Device Entry",
+        "description": "Format: 'Address#Buffer:Name' (e.g., '192.168.1.100#3:MyPhone' or 'AA:BB:CC:DD:EE:FF:MyPC')",
+        "data": {
+          "ip_filter_mode": "IP Mode",
+          "custom_ips": "Custom IP List",
+          "subnet_filter_mode": "Subnet Mode",
+          "custom_subnets": "Custom Subnets (CIDR)",
+          "mac_filter_mode": "MAC Mode",
+          "custom_macs": "Custom MAC List"
+        }
+      },
+      "manage_devices": {
+        "title": "Manage Tracker Entities",
+        "description": "Global default buffer is {global_default}. Leave buffer empty to use default.",
+        "data": {
+          "name_": "Display Name",
+          "buffer_": "Specific Buffer"
+        }
+      }
     },
-    "options": {
-        "step": {
-            "init": {
-                "title": "Select Action",
-                "description": "Currently in UI Mode. Switching to Const mode requires manual integration reload.",
-                "data": {
-                    "update_interval_seconds": "Update Interval (seconds)",
-                    "default_disconnect_times": "Default Buffer (times)",
-                    "source_mode": "Configuration Mode",
-                    "next_step": "Next Action"
-                }
-            },
-            "scan_add": {
-                "title": "Scan & Append Devices",
-                "description": "Select devices to append for monitoring. Include mode adds new devices, Exclude mode removes from current list. Configured devices are auto-filled.\n{loading_hint}",
-                "data": {
-                    "ip_filter_mode": "IP Filter Mode",
-                    "selected_ips": "Select IPs (Search by device name supported)",
-                    "mac_filter_mode": "MAC Filter Mode",
-                    "selected_macs": "Select MACs (Search by device name supported)"
-                }
-            },
-            "custom_add": {
-                "title": "Manually Append Devices",
-                "description": "Newly entered devices will be appended to existing list. Buffer set to 0 means use global default.\nConfigured devices are shown in input boxes and can be edited. Leave all inputs empty and click Next to skip changes.",
-                "data": {
-                    "ip_filter_mode": "IP Filter Mode",
-                    "custom_ips": "IP Input",
-                    "subnet_filter_mode": "Subnet Filter Mode",
-                    "custom_subnets": "Subnet Input",
-                    "mac_filter_mode": "MAC Filter Mode",
-                    "custom_macs": "MAC Input"
-                }
-            },
-            "manage_devices": {
-                "title": "Manage Devices (Modify Parameters)",
-                "description": "Modify name and buffer settings for monitored devices.\nLeave the second box empty or set to 0 to use the global default.\nGlobal default buffer: {global_default} times"
-            },
-            "delete_devices": {
-                "title": "Delete Devices",
-                "description": "{action}",
-                "data": {
-                    "device_list": "Select Devices to Delete"
-                }
-            }
-        }
+    "error": {
+      "cannot_connect": "Failed to connect to iKuai router",
+      "invalid_auth": "Invalid username or password",
+      "interval_too_small": "Update interval must be at least 5 seconds",
+      "invalid_buffer": "Buffer must be a non-negative integer",
+      "no_devices_found": "No devices matched your selection",
+      "expected_int": "Please enter a valid integer",
+      "invalid_ip_format": "One or more IPs are invalid",
+      "invalid_mac_format": "One or more MACs are invalid",
+      "unknown": "Unexpected error occurred"
     },
-    "selector": {
-        "filter_mode": {
-            "options": {
-                "include": "Include",
-                "exclude": "Exclude"
-            }
-        },
-        "config_mode": {
-            "options": {
-                "ui": "UI Mode",
-                "const": "Const Code Mode"
-            }
-        },
-        "action_steps": {
-            "options": {
-                "scan_add": " Scan & Append Devices",
-                "custom_add": " Manually Append Devices",
-                "manage_devices": " Manage Devices (Modify)",
-                "delete_devices": " Delete Devices",
-                "exit": "Save Global Settings Only & Exit"
-            }
-        }
+    "abort": {
+      "already_configured": "This iKuai host is already configured",
+      "reauth_successful": "Re-authentication was successful"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "iKuai Options",
+        "data": {
+          "update_interval_seconds": "Scan Interval",
+          "act_buffer": "Global Offline Buffer",
+          "source_mode": "Tracking Mode",
+          "next_step": "Action to perform"
+        }
+      },
+      "delete_devices": {
+        "title": "Remove Trackers",
+        "description": "{action}",
+        "data": {
+          "device_list": "Devices to delete"
+        }
+      }
+    }
+  },
+  "selector": {
+    "config_mode": {
+      "options": {
+        "mode_ui": "UI Configuration (Dynamic)",
+        "mode_const": "Manual (via const.py)"
+      }
+    },
+    "filter_mode": {
+      "options": {
+        "include": "Include Selected",
+        "exclude": "Exclude Selected (Inverse)"
+      }
+    },
+    "action_steps": {
+      "options": {
+        "scan_add": "Scan and Add Devices",
+        "custom_add": "Manually Add Devices",
+        "manage_devices": "Edit Existing Names/Buffers",
+        "delete_devices": "Delete Trackers",
+        "exit": "Save and Exit"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "uptime": { "name": "System Uptime" },
+      "cpu_usage": { "name": "CPU Usage" },
+      "cpu_temperature": { "name": "CPU Temperature" },
+      "memory_usage": { "name": "Memory Usage" },
+      "online_users": { "name": "Online Users" },
+      "ap_online": { "name": "AP Online Count" },
+      "total_upload": { "name": "Total Upload" },
+      "total_download": { "name": "Total Download" },
+      "upload_speed": { "name": "Upload Speed" },
+      "download_speed": { "name": "Download Speed" },
+      "connection_count": { "name": "Connection Count" },
+      "ikuai_ip": { "name": "Current Device IP" },
+      "wan_uptime": { "name": "WAN Uptime" }
+    },
+    "button": {
+      "restart_router": { "name": "Restart iKuai" },
+      "reconnect_wan": { "name": "Reconnect WAN" }
+    },
+    "switch": {
+      "arp_filter": { "name": "ARP Binding Filter" },
+      "stream_control": { "name": "Auto Stream Control" },
+      "mac_control": { "name": "MAC Access Control" }
+    },
+    "device_tracker": {
+      "ikuai_tracker": { "name": "Device Tracker" }
+    }
+  }
 }
