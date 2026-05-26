@@ -45,6 +45,7 @@ class IkuaiSensor(CoordinatorEntity[IKUAIDataUpdateCoordinator], SensorEntity):
         
         # 唯一 ID：由域名、描述符 key 和主机地址组成
         self._attr_unique_id = f"{DOMAIN}_{description.key}_{coordinator.host}"
+        self._attr_translation_key = description.translation_key
         
         # 引用协调器统一定义的设备信息
         self._attr_device_info = coordinator.device_info

@@ -28,6 +28,7 @@ class IkuaiButton(CoordinatorEntity[IKUAIDataUpdateCoordinator], ButtonEntity):
         super().__init__(coordinator)
         self.entity_description = description
         self._attr_unique_id = f"{DOMAIN}_{description.key}_{coordinator.host}"
+        self._attr_translation_key = description.translation_key
         self._attr_device_info = coordinator.device_info
 
     async def async_press(self) -> None:

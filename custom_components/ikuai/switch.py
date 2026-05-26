@@ -73,20 +73,22 @@ class IkuaiMacControlSwitch(CoordinatorEntity[IKUAIDataUpdateCoordinator], Switc
     """动态 MAC 控制开关 (同样加入状态保护)."""
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator, mac_id) -> None:
+    def __init__(self, coordinator, description, mac_id) -> None:
         super().__init__(coordinator)
+        self.entity_description = description
         self._mac_id = str(mac_id)
         self._attr_device_info = coordinator.device_info
         self._last_action_time = 0
         self._pending_on = False
         self._update_attr()
 
-    def _update_attr(self):
+    def _update_attr(self, description):
         item = self.coordinator.data.get("mac_control_map", {}).get(self._mac_id, {})
         comment = item.get("comment") or "未备注"
         mac_addr = item.get("mac", "Unknown")
         self._attr_name = f"MAC访问控制: {comment} ({mac_addr})"
         self._attr_unique_id = f"{DOMAIN}_mac_ctrl_{self._mac_id}_{self.coordinator.host}"
+        self._attr_translation_key = description.translation_key
 
     @property
     def is_on(self) -> bool:

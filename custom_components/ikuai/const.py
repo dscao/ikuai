@@ -65,7 +65,6 @@ class IkuaiSwitchEntityDescription(SwitchEntityDescription):
 SENSOR_TYPES: Final[tuple[IkuaiSensorEntityDescription, ...]] = (
     IkuaiSensorEntityDescription(
         key="ikuai_uptime",
-        name="Uptime",
         translation_key="uptime",
         icon="mdi:clock-time-eight",
         device_class=SensorDeviceClass.DURATION,
@@ -74,7 +73,6 @@ SENSOR_TYPES: Final[tuple[IkuaiSensorEntityDescription, ...]] = (
     ),
     IkuaiSensorEntityDescription(
         key="ikuai_cpu",
-        name="CPU Usage",
         translation_key="cpu_usage",
         icon="mdi:cpu-64-bit",
         native_unit_of_measurement=PERCENTAGE,
@@ -82,7 +80,6 @@ SENSOR_TYPES: Final[tuple[IkuaiSensorEntityDescription, ...]] = (
     ),
     IkuaiSensorEntityDescription(
         key="ikuai_cputemp",
-        name="CPU Temperature",
         translation_key="cpu_temperature",
         icon="mdi:thermometer",
         device_class=SensorDeviceClass.TEMPERATURE,
@@ -91,7 +88,6 @@ SENSOR_TYPES: Final[tuple[IkuaiSensorEntityDescription, ...]] = (
     ),
     IkuaiSensorEntityDescription(
         key="ikuai_memory",
-        name="Memory Usage",
         translation_key="memory_usage",
         icon="mdi:memory",
         native_unit_of_measurement=PERCENTAGE,
@@ -99,21 +95,18 @@ SENSOR_TYPES: Final[tuple[IkuaiSensorEntityDescription, ...]] = (
     ),
     IkuaiSensorEntityDescription(
         key="ikuai_online_user",
-        name="Online Users",
         translation_key="online_users",
         icon="mdi:account-multiple",
         state_class=SensorStateClass.MEASUREMENT,
     ),
     IkuaiSensorEntityDescription(
         key="ikuai_ap_online",
-        name="AP Online",
         translation_key="ap_online",
         icon="mdi:access-point",
         state_class=SensorStateClass.MEASUREMENT,
     ),
     IkuaiSensorEntityDescription(
         key="ikuai_total_up",
-        name="Total Upload",
         translation_key="total_upload",
         icon="mdi:upload-network",
         device_class=SensorDeviceClass.DATA_SIZE,
@@ -122,7 +115,6 @@ SENSOR_TYPES: Final[tuple[IkuaiSensorEntityDescription, ...]] = (
     ),
     IkuaiSensorEntityDescription(
         key="ikuai_total_down",
-        name="Total Download",
         translation_key="total_download",
         icon="mdi:download-network",
         device_class=SensorDeviceClass.DATA_SIZE,
@@ -131,7 +123,6 @@ SENSOR_TYPES: Final[tuple[IkuaiSensorEntityDescription, ...]] = (
     ),
     IkuaiSensorEntityDescription(
         key="ikuai_upload",
-        name="Upload Speed",
         translation_key="upload_speed",
         icon="mdi:wifi-arrow-up",
         device_class=SensorDeviceClass.DATA_RATE,
@@ -140,7 +131,6 @@ SENSOR_TYPES: Final[tuple[IkuaiSensorEntityDescription, ...]] = (
     ),
     IkuaiSensorEntityDescription(
         key="ikuai_download",
-        name="Download Speed",
         translation_key="download_speed",
         icon="mdi:wifi-arrow-down",
         device_class=SensorDeviceClass.DATA_RATE,
@@ -149,20 +139,17 @@ SENSOR_TYPES: Final[tuple[IkuaiSensorEntityDescription, ...]] = (
     ),
     IkuaiSensorEntityDescription(
         key="ikuai_connect_num",
-        name="Connection Count",
         translation_key="connection_count",
         icon="mdi:lan-connect",
         state_class=SensorStateClass.MEASUREMENT,
     ),
     IkuaiSensorEntityDescription(
         key="ikuai_ip",
-        name="Current Device IP",
         translation_key="ikuai_ip",
         icon="mdi:ip-network-outline",
     ),
     IkuaiSensorEntityDescription(
         key="ikuai_wan_uptime",
-        name="WAN Uptime",
         translation_key="wan_uptime",
         icon="mdi:timer-sync-outline",
         device_class=SensorDeviceClass.DURATION,
@@ -174,14 +161,12 @@ SENSOR_TYPES: Final[tuple[IkuaiSensorEntityDescription, ...]] = (
 BUTTON_TYPES: Final[tuple[IkuaiButtonEntityDescription, ...]] = (
     IkuaiButtonEntityDescription(
         key="ikuai_restart",
-        name="Restart Router",
         translation_key="restart_router",
         device_class=None,
         action_body={"func_name": "reboots", "action": "reboots"},
     ),
     IkuaiButtonEntityDescription(
         key="ikuai_reconnect_wan",
-        name="Reconnect WAN",
         translation_key="reconnect_wan",
         icon="mdi:wan",
         action_body={"func_name": "wan", "action": "link_pppoe_reconnect", "param": {"id": 1}},
@@ -191,7 +176,6 @@ BUTTON_TYPES: Final[tuple[IkuaiButtonEntityDescription, ...]] = (
 SWITCH_TYPES: Final[tuple[IkuaiSwitchEntityDescription, ...]] = (
     IkuaiSwitchEntityDescription(
         key="ikuai_arp_filter",
-        name="ARP Filter",
         translation_key="arp_filter",
         icon="mdi:account-lock",
         turn_on_body={"func_name": "arp", "action": "seting", "param": {"arp_filter": 1}},
@@ -202,7 +186,6 @@ SWITCH_TYPES: Final[tuple[IkuaiSwitchEntityDescription, ...]] = (
     ),
     IkuaiSwitchEntityDescription(
         key="ikuai_stream_control",
-        name="Stream Control",
         translation_key="stream_control",
         icon="mdi:network-outline",
         turn_on_body={"func_name": "stream_control", "action": "seting", "param": {"stream_ctl_mode": 1}},

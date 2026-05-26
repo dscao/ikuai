@@ -51,7 +51,7 @@ class IkuaiTracker(CoordinatorEntity[IKUAIDataUpdateCoordinator], ScannerEntity)
     _attr_has_entity_name = True
     _attr_translation_key = "ikuai_tracker"
 
-    def __init__(self, coordinator, target_id, info) -> None:
+    def __init__(self, coordinator, description, target_id, info) -> None:
         super().__init__(coordinator)
         self._target_id = target_id
         
@@ -61,6 +61,7 @@ class IkuaiTracker(CoordinatorEntity[IKUAIDataUpdateCoordinator], ScannerEntity)
         self._attr_name = data.get("friendly_name") or info.get("name") or target_id
         # 唯一 ID
         self._attr_unique_id = f"{DOMAIN}_tracker_{target_id.replace(':', '_')}_{coordinator.host}"
+        self._attr_translation_key = description.translation_key
 
     @property
     def device_info(self) -> DeviceInfo:
