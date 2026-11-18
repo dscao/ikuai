@@ -148,6 +148,20 @@ class DataFetcher:
 
         sysstat = data_block.get("sysstat", {})
         ac_status = data_block.get("ac_status", {})
+        # iKuai 4.0.x moved cpu/memory/stream/online_user out of homepage sysstat
+        # into a dedicated sysstat endpoint. Merging them back keeps 3.x working.
+        if sysstat and "cpu" not in sysstat:
+            try:
+                res2 = await self.requestpost_json(
+                    self._host + ACTION_URL, header,
+                    {"func_name": "sysstat", "action": "show",
+                     "param": {"TYPE": "cpu,memory,stream,online_user"}},
+                )
+                blk2 = self._get_data_block(res2)
+                if blk2:
+                    sysstat.update(blk2)
+            except Exception:
+                pass
 
         if sysstat:
             data_dict["sw_version"] = sysstat.get("verinfo", {}).get("verstring", "Unknown")
