@@ -149,6 +149,23 @@ class DataFetcher:
         sysstat = data_block.get("sysstat", {})
         ac_status = data_block.get("ac_status", {})
 
+        # iKuai 4.0.x moved cpu/memory/cputemp/stream/online_user out of the
+        # homepage sysstat block into a dedicated sysstat endpoint. Merge them
+        # back so the existing parsing below keeps working; 3.x already has
+        # "cpu" in sysstat and skips this branch.
+        if sysstat and "cpu" not in sysstat:
+            try:
+                res2 = await self.requestpost_json(
+                    self._host + ACTION_URL, header,
+                    {"func_name": "sysstat", "action": "show",
+                     "param": {"TYPE": "cpu,memory,cputemp,stream,online_user"}},
+                )
+                blk2 = self._get_data_block(res2)
+                if isinstance(blk2, dict):
+                    sysstat.update(blk2)
+            except Exception:
+                pass
+
         if sysstat:
             data_dict["sw_version"] = sysstat.get("verinfo", {}).get("verstring", "Unknown")
             data_dict["device_name"] = sysstat.get("hostname", "iKuai")
@@ -189,14 +206,18 @@ class DataFetcher:
         if not data_block: return
         
         snapshoot_wan = data_block.get("snapshoot_wan")
-        if isinstance(snapshoot_wan, list):
+        if isinstance(snapshoot_wan, list) and snapshoot_wan:
+            # iKuai 4.0.x static-IP lines report default_route=0 / internet=2,
+            # so fall back to the first connected line when no default_route=1.
+            main = next((i for i in snapshoot_wan if i.get("default_route") == 1), None)
+            if main is None:
+                main = next((i for i in snapshoot_wan if i.get("internet") in [2, 3, 4]), snapshoot_wan[0])
+            data_dict["ikuai_wan_ip"] = main.get("ip_addr", "")
+            data_dict["ikuai_wan_ip_attrs"] = main
+            up_time = main.get("updatetime", 0)
+            data_dict["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - up_time)) if up_time > 0 else ""
             for item in snapshoot_wan:
-                if item.get("default_route") == 1:
-                    data_dict["ikuai_wan_ip"] = item.get("ip_addr", "")
-                    data_dict["ikuai_wan_ip_attrs"] = item
-                    up_time = item.get("updatetime", 0)
-                    data_dict["ikuai_wan_uptime"] = self.seconds_to_dhms(int(time.time() - up_time)) if up_time > 0 else ""
-                elif item.get("internet") in [3, 4]:
+                if item is not main and item.get("internet") in [3, 4]:
                     await self._get_ikuai_showvlan(sess_key, item.get("interface"), data_dict)
 
     async def _get_ikuai_showvlan(self, sess_key, interface, data_dict):
